@@ -1,11 +1,17 @@
 import * as React from 'react';
-import {connect} from 'react-redux';
+import { connect } from 'react-redux';
+import { Dispatch } from 'redux';
 
 import './App.css';
 
 import logo from './logo.svg';
+import Tracker, { Target } from './tracker';
 
-class App extends React.Component {
+export interface IProps {
+  user?: any
+}
+
+class App extends React.Component<IProps, unknown> {
   public render() {
     return (
       <div className="App">
@@ -13,6 +19,8 @@ class App extends React.Component {
           <img src={logo} className="App-logo" alt="logo" />
           <h1 className="App-title">Welcome to React</h1>
         </header>
+        <Tracker track={Target.FACE} detection={() => { return false }} />
+
         <p className="App-intro">
           To get started, edit <code>src/App.tsx</code> and save to reload.
         </p>
@@ -21,12 +29,13 @@ class App extends React.Component {
   }
 }
 
-const mapStateToProps = (state,ownProps)=>{
+const mapStateToProps = (state: unknown, ownProps: IProps) => {
+  return { user: null }
 
 };
 
-const mapDispatchToProps = (dispatch,ownProps)=>{
-
+const mapDispatchToProps = (dispatch: Dispatch, ownProps: IProps) => {
+  return {}
 };
 
-export default connect(mapStateToProps,mapDispatchToProps)
+export default connect(mapStateToProps, mapDispatchToProps)(App);

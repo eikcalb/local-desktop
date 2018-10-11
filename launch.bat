@@ -1,1 +1,1 @@
-start /SEPARATE C:/nw.js/nw "."
+start C:/nw.js/nw "."
