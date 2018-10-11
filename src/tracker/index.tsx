@@ -28,6 +28,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     }
 
     _onload() {
+        this.registerTracker(this);
         return;
         // navigator.getUserMedia({ video: true },
         //     s => {
