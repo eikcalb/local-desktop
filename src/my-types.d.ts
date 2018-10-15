@@ -1,1 +1,1 @@
-declare module 'tracking';
+export const ANDROID = "application/vnd.android.package-archive";
