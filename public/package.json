@@ -1,0 +1,15 @@
+{
+  "name": "local-desktop",
+  "version": "0.1.0",
+  "description": "client for local fleet application",
+  "main": "index.html",
+  "user-agent": "%name: %ver by Eikcalb",
+  "single-instance": true,
+  "author": {
+    "name": "Agwa Israel Onome",
+    "email": "agwaisraelonome@gmail.com"
+  },
+  "window": {
+    "frame": false
+  }
+}

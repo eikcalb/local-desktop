@@ -28,7 +28,7 @@ export interface ITrackerProps {
 
 const MODELS = "/weights";
 const MIN_CONFIDENCE: number = 0.5;
-const BOX_COLOR: string = '#559'
+const BOX_COLOR: string = '#595'
 
 export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
 
@@ -38,6 +38,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     private useBatch: boolean = true;
     public fullFaceDescriptors: FullFaceDescription[];
     private running: boolean = false
+    private ctx: CanvasRenderingContext2D | null;
 
 
 
@@ -73,6 +74,9 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     componentWillUnmount() {
         this.mediaStream.stop();
         this.mediaStream.oninactive = null;
+        delete this.canvasEl
+        delete this.videoEl
+        this.ctx = null
     }
 
     run() {
@@ -86,7 +90,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     render() {
         return (
             <div className="Tracker">
-                <video height={416} width={768} poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onPlay={() => { this.running = true; this.run.bind(this)() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }} />
+                <video height={'100%'} width={'100%'} poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onPlay={() => { this.running = true; this.run.bind(this)() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }} />
                 <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} />
                 {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
             </div>
@@ -149,6 +153,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
         }
 
         this.videoEl.srcObject = this.mediaStream;
+        this.ctx = this.canvasEl.getContext('2d');
     }
 
     private async detectFaces(input: TrackerInputType, show?: boolean, useBatch?: boolean) {
@@ -159,6 +164,9 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
         if (show) {
             fullFaceDescriptors.forEach(fd => {
                 fd = fd.forSize(this.videoEl.width, this.videoEl.height)
+                if (this.ctx) {
+                    this.ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height)
+                }
                 if (fd.detection) {
                     faceapi.drawDetection(this.canvasEl, fd.detection, { withScore: false, boxColor: BOX_COLOR })
                 }

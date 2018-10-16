@@ -35,9 +35,5 @@
     "@types/react": "^16.4.14",
     "@types/react-dom": "^16.0.7",
     "typescript": "^3.0.3"
-  },
-  "window": {
-    "frame": true,
-    "transparent": true
   }
 }
