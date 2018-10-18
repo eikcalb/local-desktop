@@ -19,7 +19,7 @@ class App extends React.Component<IProps, unknown> {
           <img src={logo} className="App-logo" alt="logo" />
           <h1 className="App-title">Welcome to React</h1>
         </header>
-        <Tracker track={Target.DETECT} detection={() => { return false }} notify={() => { return false }} recognize={() => { return false }} />
+        <Tracker play track={Target.DETECT} detection={() => { return false }} notify={() => { return false }} recognize={() => { return false }} />
       </div>
     );
   }

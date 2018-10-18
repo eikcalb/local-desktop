@@ -49,3 +49,15 @@
   flex:1;
   position: relative;
 }
+
+.FineVideo{
+  filter: brightness(1.5) contrast(1.82) saturate(2)
+}
+
+.FineVideo.NoColor{
+  filter: brightness(1.5) contrast(1.82) saturate(0)
+}
+
+.FineVideo.Gray{
+  filter: brightness(1.5) contrast(1.82) grayscale(1)
+}

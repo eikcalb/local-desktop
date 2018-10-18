@@ -3,10 +3,10 @@ import { FullFaceDescription } from "face-api.js";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import Message, { IMessage } from "../notification";
-import { FACE_DETECT, NOTIFICATION, FACE_DETECT_ADD } from "../types";
-import { getImageFromMedia } from "./util";
 import logo from '../logo.svg';
+import Message, { IMessage } from "../notification";
+import { FACE_DETECT, FACE_DETECT_ADD, NOTIFICATION } from "../types";
+import { getImageFromMedia } from "./util";
 
 export enum Target {
     DETECT, RECOGNIZE, VERIFY
@@ -23,23 +23,33 @@ export interface ITrackerProps {
     track: Target;
     notify: (message: IMessage) => any;
     detection: any;
-    recognize: any
+    recognize: any;
+    play: boolean;
 }
 
-const MODELS = "/weights";
+
+const MODELS = `${process.env.PUBLIC_URL}/weights`;
 const MIN_CONFIDENCE: number = 0.5;
-const BOX_COLOR: string = '#595'
+const MIN_VIDEO_HEIGHT: number = 416
+const MIN_VIDEO_WIDTH: number = 768
+const IDEAL_FRAMERATE = 6
 
 export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
 
     private videoEl: HTMLVideoElement;
     private canvasEl: HTMLCanvasElement;
     private mediaStream: MediaStream;
+    private videoTrack: MediaStreamTrack
     private useBatch: boolean = true;
     public fullFaceDescriptors: FullFaceDescription[];
-    private running: boolean = false
+    private running: boolean = this.props.play
     private ctx: CanvasRenderingContext2D | null;
-
+    private timer: number
+    private rafId: number
+    private resizeObserver: {}
+    public boxColor: { [key: string]: string } = {
+        success: '#5a5', default: '#336', fail: '#700'
+    }
 
 
     //TODO:  Make this to parse directory and get faces from that directory
@@ -54,7 +64,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
         let labels: string[] = ['lord'];
         return Promise.all(labels)
             .then(async imgx => imgx.map(async img => {
-                let resp = await fetch(`/faces/${img}.png`)
+                let resp = await fetch(`${process.env.PUBLIC_URL}/faces/${img}.png`)
                 return await faceapi.bufferToImage(await resp.blob())
             }))
             .then(htmlImgx => htmlImgx.map(async htmlImg => await faceapi.allFaces(await htmlImg, MIN_CONFIDENCE, this.useBatch)[0]))
@@ -72,26 +82,47 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     }
 
     componentWillUnmount() {
+        cancelAnimationFrame(this.rafId);
         this.mediaStream.stop();
         this.mediaStream.oninactive = null;
         delete this.canvasEl
         delete this.videoEl
+        delete this.videoTrack
         this.ctx = null
     }
 
-    run() {
-        if (!this.running) {
-            return
-        }
-        this._handle()
-        requestAnimationFrame(this.run.bind(this))
+    canRunAlg(): boolean {
+        return !!this.timer;
     }
+
+    getSnapshotBeforeUpdate(prevProps: ITrackerProps, PrevState: unknown): any {
+        return this.props.play
+    }
+
+    componentDidUpdate(prevProps: any, PrevState: any, snapshot: boolean) {
+        this.running = snapshot
+    }
+
+    updateConstraints() {
+
+    }
+
+    run() {
+        if (this.running && this.canRunAlg()) {
+            // this._handle()
+        }
+        this.rafId = requestAnimationFrame(this.run.bind(this))
+    }
+
 
     render() {
         return (
             <div className="Tracker">
-                <video height={'100%'} width={'100%'} poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onPlay={() => { this.running = true; this.run.bind(this)() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }} />
-                <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} />
+                <video height={'100%'} className={'FineVideo NoColor'} width={'100%'} poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
+                    <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
+                </video>
+                <canvas ref={el => { if (el) { this.canvasEl = el } }} style={{ height: '100%', width: '100%', zIndex: 2, position: 'absolute', top: '0', left: 0 }} />
+                {/* <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} /> */}
                 {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
             </div>
         )
@@ -107,16 +138,25 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
 
         navigator.mediaDevices.getUserMedia({
             video: {
-                frameRate: { ideal: 5, max: 12, min: 2 }, height: this.videoEl.height, width: this.videoEl.width
+                aspectRatio: 1,
+                frameRate: { ideal: IDEAL_FRAMERATE, max: 10, min: 2 },
+                height: { ideal: this.videoEl.clientHeight, min: MIN_VIDEO_HEIGHT },
+                width: { ideal: this.videoEl.clientWidth, min: MIN_VIDEO_WIDTH }
             }
         })
             .then(
                 s => {
-                    this.running = true
+                    // this.running = true
                     this.mediaStream = s;
                     this.mediaStream.oninactive = (stream): any => {
                         this.running = false
                     }
+                    this.resizeObserver = new ResizeObserver((entries: [], observer: any) => {
+                        if (entries.find(val => this.videoEl === val)) {
+
+                        }
+                    })
+                    this.videoTrack = this.mediaStream.getVideoTracks()[0];
                     this.registerTracker();
                 },
                 e => {
@@ -163,12 +203,12 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
 
         if (show) {
             fullFaceDescriptors.forEach(fd => {
-                fd = fd.forSize(this.videoEl.width, this.videoEl.height)
+                fd = fd.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight)
                 if (this.ctx) {
-                    this.ctx.clearRect(0, 0, this.canvasEl.width, this.canvasEl.height)
+                    this.ctx.clearRect(0, 0, this.canvasEl.clientWidth, this.canvasEl.clientHeight)
                 }
                 if (fd.detection) {
-                    faceapi.drawDetection(this.canvasEl, fd.detection, { withScore: false, boxColor: BOX_COLOR })
+                    faceapi.drawDetection(this.canvasEl, fd.detection, { withScore: false, boxColor: this.boxColor.default })
                 }
                 console.log(fd)
             })
@@ -238,7 +278,7 @@ export class TrackerResult {
 }
 
 export class TrackerStore {
-    private rootPath: string = "./faces"
+    private rootPath: string = `${process.env.PUBLIC_URL}/faces`
     get path(): string {
         return this.rootPath
     }
