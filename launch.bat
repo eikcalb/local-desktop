@@ -1,3 +1,4 @@
+@echo off
 setlocal ENABLEEXTENSIONS ENABLEDELAYEDEXPANSION
 
 if "%1"=="build" (
@@ -5,7 +6,7 @@ if "%1"=="build" (
     ) else (
         start /B C:/nw.js/nw "./build"
         )
-if not !ERRORLEVEL!=0 (
+if not !ERRORLEVEL!==0 (
     echo An error occurred while starting application
 )
 goto :EOF

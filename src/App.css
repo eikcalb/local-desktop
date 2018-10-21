@@ -51,7 +51,9 @@
 }
 
 .FineVideo{
-  filter: brightness(1.5) contrast(1.82) saturate(2)
+  filter: brightness(1.5) contrast(1.82) saturate(1);
+  transform-box: border-box;
+  transform: rotateY(180deg);
 }
 
 .FineVideo.NoColor{
@@ -60,4 +62,9 @@
 
 .FineVideo.Gray{
   filter: brightness(1.5) contrast(1.82) grayscale(1)
+}
+
+.FineVideo ~ canvas{
+  transform-box: border-box;
+  transform: rotateY(180deg);
 }
