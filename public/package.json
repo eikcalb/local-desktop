@@ -11,6 +11,8 @@
   },
   "window": {
     "frame": false,
-    "position":"center"
+    "position":"center",
+    "min-width":"672",
+    "min-height":"364"
   }
 }

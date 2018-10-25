@@ -149,7 +149,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     render() {
         return (
             <div className="Tracker">
-                <video className={"FineVideo"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
+                <video className={"b"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
                     <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
                 </video>
                 <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', top: '-50%' }} />
@@ -223,7 +223,6 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
         this.canvasEl.width = this.videoEl.width
         this.canvasEl.height = this.videoEl.height
         this.ctx = this.canvasEl.getContext('2d');
-        setTimeout(() => this.videoEl.pause(), 25000)
     }
 
     private async detectFaces(input: TrackerInputType, show?: boolean, useBatch?: boolean) {
@@ -241,8 +240,13 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
                     if (res.faceDetection) {
                         let rBox = res.faceDetection.getRelativeBox()
                         let { clientWidth, clientHeight } = this.canvasEl
-                        console.log(rBox, [(clientWidth * rBox.x).toPrecision(4), (clientHeight * rBox.y).toPrecision(4), (clientWidth * rBox.width).toPrecision(4), (clientHeight * rBox.height).toPrecision(4)])
-                        drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y), (clientWidth * (rBox.width)), (clientHeight * (rBox.height)), { strokeColor: this.boxColor.default })
+                        let lMarks = res.faceLandmarks.getPositions()
+                        let verticalDisplacement = lMarks[4].y - lMarks[3].y
+                        // console.log(rBox, [(clientWidth * rBox.x).toPrecision(4), (clientHeight * rBox.y).toPrecision(4), (clientWidth * rBox.width).toPrecision(4), (clientHeight * rBox.height).toPrecision(4)])
+                        drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
+                            (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
+                            { strokeColor: this.boxColor.default, padding: 3 },
+                            verticalDisplacement > (4 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (lMarks[4].x - lMarks[3].x)) : 0)
                         // faceapi.drawBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y), (clientWidth * (rBox.width)), (clientHeight * (rBox.height)), faceapi.getDefaultDrawOptions({ boxColor: this.boxColor.default }))
                         // faceapi.drawDetection(this.canvasEl, res.faceDetection.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight), { withScore: false, boxColor: this.boxColor.default })
                         this.videoEl.pause()

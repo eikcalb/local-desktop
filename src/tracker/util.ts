@@ -29,12 +29,13 @@ interface IDrawOptions {
     padding?: number
 }
 
-export function drawCircleFromBox(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, options: IDrawOptions) {
+export function drawCircleFromBox(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, options: IDrawOptions, rotation?: number) {
     ctx.save()
-    ctx.lineWidth = options.lineWidth || 2
+    ctx.lineWidth = (options.lineWidth || 2) * window.devicePixelRatio
     ctx.strokeStyle = options.strokeColor || "#ffff6"
     let ellipse = new Path2D()
-    ellipse.ellipse(x + (w / 2), (y + (h / 2)) - (0.05 * h), (w / 2) + (options.padding || 0), (h / 1.6) + (options.padding || 0), 0, 0, toRadians(360))
+    console.log(rotation)
+    ellipse.ellipse((x + (w / 2)) * window.devicePixelRatio, ((y + (h / 2)) - (0.05 * h)) * window.devicePixelRatio, ((w / 2) + (options.padding || 0)) * window.devicePixelRatio, ((h / 1.6) + (options.padding || 0)) * window.devicePixelRatio, rotation || 0, 0, toRadians(360), false)
     ctx.stroke(ellipse)
     ctx.restore()
 }
