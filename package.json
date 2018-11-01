@@ -11,7 +11,9 @@
   },
   "private": true,
   "dependencies": {
+    "@material-ui/core": "^3.3.2",
     "@types/jsonwebtoken": "^7.2.8",
+    "@types/nw.js": "^0.13.8",
     "@types/react-redux": "^6.0.9",
     "@types/react-router": "^4.0.32",
     "@types/react-router-dom": "^4.3.1",

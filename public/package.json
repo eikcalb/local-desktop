@@ -10,9 +10,17 @@
     "email": "agwaisraelonome@gmail.com"
   },
   "window": {
+    "id": "main-application-window",
+    "icon": "favicon.ico",
+    "show": false,
+    "shadow": true,
     "frame": false,
-    "position":"center",
-    "min-width":"672",
-    "min-height":"364"
+    "toolbar": false,
+    "position": "center",
+    "min_width": 672,
+    "min_height": 364,
+    "width": 960,
+    "height": 520,
+    "transparent": true
   }
 }

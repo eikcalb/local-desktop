@@ -4,11 +4,11 @@ import { Vehicle } from "./vehicle";
 
 export default class User {
     id: number = -1;
-    fullname:string;
+    fullname: string;
     public username: string;
     public email?: string;
     public faceDescriptor?: FullFaceDescription;
-    useFingerprint?:boolean;
+    useFingerprint?: boolean;
     isactive: boolean = false;
     location?: Location;
     vehicles?: Vehicle[] = []
@@ -19,8 +19,8 @@ export default class User {
         return "data:image/png;base64," + this.profile;
     }
 
-    
-    constructor(username:string|User) {
+
+    constructor(username: string | User) {
         if (username && typeof username === 'object') {
             this.username = username.username;
             this.location = username.location;

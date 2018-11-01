@@ -1,3 +1,37 @@
+#root{
+  user-select: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-content: stretch;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  border-radius: 1em;
+  background: linear-gradient(#202082,60%,#0f0f38,94%,#010015);
+
+}
+
+#root.Maximize, #root:fullscreen{
+  border-radius: 0;
+}
+
+
+.Toolbar{
+  -webkit-app-region: drag;
+  height: 1.8em !important;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: .75em;
+  font-weight: bold;
+  color:#bdbdbd;
+  padding: 0.3em 0 0.3em 1.4em;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  background:rgb(10, 10, 10);
+}
+
 .App {
   text-align: center;
   position: relative;
@@ -5,8 +39,9 @@
   flex-direction: column;
   justify-content: flex-start;
   align-content: stretch;
-  height: 100vh;
-  width: 100vw;
+  /* height: 100vh;
+  width: 100vw; */
+  flex: 1;
 }
 
 .App-logo {
@@ -34,34 +69,23 @@
   to { transform: rotate(360deg); }
 }
 
-#root{
-  display: flex;
-  flex-direction: row;
-  justify-content: center;
-  align-content: stretch;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-  background: linear-gradient(#000023,93%,#2f2fbd);
-}
-
 .Tracker{
   flex:1;
   position: relative;
 }
 
 .FineVideo{
-  filter: brightness(1.5) contrast(1.82) saturate(1);
+  filter: brightness(0.7) contrast(1.82) saturate(1);
   transform-box: border-box;
   transform: rotateY(180deg);
 }
 
 .FineVideo.NoColor{
-  filter: brightness(1.5) contrast(1.82) saturate(0)
+  filter: brightness(0.7) contrast(1.82) saturate(0)
 }
 
 .FineVideo.Gray{
-  filter: brightness(1.5) contrast(1.82) grayscale(1)
+  filter: brightness(0.7) contrast(1.82) grayscale(1)
 }
 
 .FineVideo ~ canvas{

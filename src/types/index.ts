@@ -1,6 +1,10 @@
 
 // STARTUP RELATED
 
+export const DATABASE_READY = "DATABASE_READY";
+export type DATABASE_READY = typeof DATABASE_READY
+
+
 export const LOGIN = "LOGIN";
 export type LOGIN = typeof LOGIN
 

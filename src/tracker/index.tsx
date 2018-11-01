@@ -149,7 +149,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     render() {
         return (
             <div className="Tracker">
-                <video className={"b"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
+                <video className={"FineVideo"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
                     <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
                 </video>
                 <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', top: '-50%' }} />
@@ -351,13 +351,13 @@ export class TrackerResult {
 }
 
 export class TrackerStore {
-    private rootPath: string = `${process.env.PUBLIC_URL}/faces`
+    private rootPath: string = `${nw.App.dataPath}/.app/faces`
     get path(): string {
         return this.rootPath
     }
 
-    constructor() {
-
+    constructor(root?: string) {
+        this.rootPath = root || this.rootPath
     }
 
 }

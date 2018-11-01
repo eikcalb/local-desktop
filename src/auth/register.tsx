@@ -1,13 +1,24 @@
 import * as React from "react"
-import { connect } from "react-redux";
+import { FormGroup } from "@material-ui/core";
 
-export class Register extends React.PureComponent{
-
+export interface IRegisterProps {
+    form?: string
 }
 
-const mapStateToProps=()=>{}
-
-const mapDispatchToProps=()=>{}
-
-export default connect(mapStateToProps,mapDispatchToProps)(Register)
+export class Register extends React.PureComponent<IRegisterProps, any>{
+    render() {
+        return (
+            <div className="Register">
+            <FormGroup  ></FormGroup>
+                <input type="text" name="username" placeholder="username" />
+                <input type='mail' name="email" placeholder="email address" />
+                <input type='tel' name="phone" placeholder="phone number" />
+                
+                <input type="password" placeholder="password" />
+                <input type="vpassword" placeholder="password" />
+                
+            </div>
+        )
+    }
+}
 
