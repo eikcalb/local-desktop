@@ -1,3 +1,10 @@
+@import "./keyframes.css" all;
+
+body{
+  background-color: transparent !important;
+  background-clip:padding-box;
+}
+
 #root{
   user-select: none;
   display: flex;
@@ -8,11 +15,10 @@
   width: 100vw;
   overflow: hidden;
   border-radius: 1em;
-  background: linear-gradient(#202082,60%,#0f0f38,94%,#010015);
-
+  background: #000; /*linear-gradient(#202082,60%,#0f0f38,94%,#010015);*/
 }
 
-#root.Maximize, #root:fullscreen{
+#root.Maximize, #root.Fullscreen{
   border-radius: 0;
 }
 
@@ -22,14 +28,38 @@
   height: 1.8em !important;
   font-family: 'Times New Roman', Times, serif;
   font-size: .75em;
-  font-weight: bold;
+  font-weight: bolder;
   color:#bdbdbd;
-  padding: 0.3em 0 0.3em 1.4em;
+  padding: 0.3em 1.3em 0.3em 1.4em;
   display: flex;
   flex-direction: row;
-  justify-content: flex-start;
+  justify-content: space-between;
   align-items: center;
-  background:rgb(10, 10, 10);
+  background:#131313;
+  white-space: nowrap;
+  z-index: 10000;
+}
+
+.Controls{
+  display: flex;
+  flex-direction: row;
+  font-size: 1.1em;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.Control:nth-child(2){
+  margin: 0 0.3em;
+}
+.Toolbar .Control{
+  -webkit-app-region: no-drag;
+  transition: all ease 200ms;
+  filter: contrast(10%);
+}
+
+.Toolbar .Control:hover{
+  filter: contrast(100%);
+  font-size: 1.4em;
 }
 
 .App {
@@ -50,14 +80,45 @@
 }
 
 .App-header {
-  background-color: #222;
-  height: 150px;
-  padding: 20px;
+  background-color: #191919;
+  display: flex;
+  flex-direction: column;
   color: white;
+  justify-content: center;
+  align-items: center;
 }
 
 .App-title {
-  font-size: 1.5em;
+  font-size: 1.3em;
+}
+
+.App-loading{
+  flex-direction: row;
+  justify-content: space-between;
+  width:4.3em;
+  display:flex;
+}
+
+.App-loading-item{
+  background: #222;
+  border-radius: 3em;
+  animation-name: appLoading;
+  height:0.7em;
+  width:0.7em;
+  animation-duration: 2s
+}
+
+@keyframes appLoading{
+  40%{
+    background:#222;
+    height:1em;
+    width:1em;
+  }
+  80%{
+    background: #fff;
+    height:1.2em;
+    width:1.2em;
+  }
 }
 
 .App-intro {
@@ -72,6 +133,9 @@
 .Tracker{
   flex:1;
   position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .FineVideo{

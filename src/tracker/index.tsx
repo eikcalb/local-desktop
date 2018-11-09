@@ -67,7 +67,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     private rafId: number
     private updateRate: number = (1000 / IDEAL_FRAMERATE)
     public boxColor: { [key: string]: string } = {
-        success: '#0a08', default: '#00a8', fail: '#a008'
+        success: '#5a58', default: '#55a8', fail: '#a558'
     }
 
 
@@ -152,7 +152,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
                 <video className={"FineVideo"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
                     <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
                 </video>
-                <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', top: '-50%' }} />
+                <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'absolute', top: 0 }} />
                 {/* <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} /> */}
                 {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
             </div>

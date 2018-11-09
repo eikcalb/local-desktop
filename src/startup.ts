@@ -2,7 +2,7 @@ import Auth from "./auth";
 let fs = require('fs')
 const path = require('path')
 
-const appPath = path.join(nw.App.dataPath, '.app')
+export const appPath = path.join(nw.App.dataPath, '.app')
 
 export default function start(password: string) {
     if (isFirstRun()) {
@@ -55,6 +55,28 @@ function setup(password: string) {
         })
     })
 
+}
+
+export function initialize(root: HTMLElement): void {
+    // addEventListener('DOMContentLoaded', e => {
+    let window = nw.Window.get()
+    let size = 'Restore'
+    window.on('maximize', () => {
+        size = 'Maximize'
+        root.className = size
+    })
+        .on('restore', () => {
+            size = 'Restore'
+            root.className = size
+        })
+        .on('enter-fullscreen', () => {
+            size = 'Fullscreen'
+            root.className = size
+        })
+    if (!root.classList.contains('Restore') && root.classList.contains('Maximize')) {
+        root.classList.add('Restore')
+    }
+    // })
 }
 
 export enum Log {

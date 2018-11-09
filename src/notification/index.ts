@@ -11,8 +11,16 @@ export default class Message implements IMessage {
 
     public message: string;
     public priority = Priority.LOW;
+    public title: string
+    public options: any
 
-    constructor(message: string) {
+    setTitle(title: string) {
+        this.title = title
+        return this
+    }
+
+    constructor(message: string, title?: string) {
         this.message = message;
+        if (title) this.title = title
     }
 }

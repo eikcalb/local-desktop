@@ -1,18 +1,62 @@
 import * as jwt from "jsonwebtoken";
-import * as crypto from "crypto";
 import * as React from "react"
+//TODO:  Remove this c and replae declarations with crypto constant defined below
+import * as c from 'crypto'
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 import { promisify } from "util";
 import { Modal, Typography, TextField } from "@material-ui/core";
+import { writeFile, writeFileSync } from "fs";
+import { appPath } from "../startup";
+import { join } from "path";
+const crypto = window.require('crypto')
 
 const IV_SEPARATOR = '.'
+const ITERATION_NUM = 64000 * 8// The number of iterations should double from `64000` every 2 years period from 2012
+// const ROOT_PASSWORD='LAGBAJA'
 
 export default class Auth {
     private key: Buffer | string
+    private salt: Buffer | string
+    private adminKey: Buffer | string
+    public adminSalt: Buffer | string
+    private digest: string = 'sha512'
+    private keySize: number = 124
+    private saltLength: number = 48
 
     constructor() {
         // this.key = process.env.LOCAL_PASSWORD
+    }
+
+    genAdminKey(key: string) {
+        let salt = crypto.randomBytes(this.saltLength)
+        try {
+            this.adminKey = this.genKey(key, salt)
+            this.adminSalt = salt;
+            writeFileSync(join(appPath, '.v1.admin.salt'), salt)
+            return { salt: this.adminSalt, key: this.adminKey }
+        } catch (e) {
+            return false
+        }
+    }
+
+    genUserKey(key: string) {
+        let salt = crypto.randomBytes(this.saltLength)
+        try {
+            this.key = this.genKey(key, salt)
+            this.salt = salt;
+
+            return { salt: this.salt, key: this.key }
+        } catch (e) {
+            return false
+        }
+    }
+
+    private genKey(key: string, salt: any) {
+        let newKey = crypto.pbkdf2Sync(key, salt, ITERATION_NUM, this.keySize, this.digest)
+
+        console.log(`Successfully created new password! KeySize: ${this.keySize}, Digest: ${this.digest}`, crypto, c)
+        return newKey
     }
 
 

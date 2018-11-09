@@ -23,19 +23,7 @@
   <title>Local Desktop</title>
 
   <script async>
-    addEventListener('DOMContentLoaded', e => {
-      let window = nw.Window.get()
-      let size = ''
-      let root = document.getElementById('root')
-      window.on('maximize', () => {
-        size = 'Maximize'
-        root.className = size
-      })
-        .on('restore', () => {
-          size = 'Restore'
-          root.className = size
-        })
-    })
+    
   </script>
 
 </head>

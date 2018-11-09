@@ -48,11 +48,28 @@ export function getIDB(): Promise<IDBDatabase> {
 
 export default interface ILocalStore {
     auth: Auth,
+    windowState: {
+        isWindowMaximized: boolean,
+        isWindowFullscreen: boolean,
+        showAppBar: boolean,
+        closed?: boolean,
+        canToggleAppBar?: boolean
+    }
     databaseReady: boolean,
     user: User | null,
     tracker?: TrackerStore
 }
 
 export function defaultStore(): ILocalStore {
-    return { user: null, auth: new Auth(), databaseReady: false }
+    return {
+        user: null,
+        windowState: {
+            isWindowFullscreen: false,
+            isWindowMaximized: false,
+            showAppBar: false,
+            canToggleAppBar: false
+        },
+        auth: new Auth(),
+        databaseReady: false
+    }
 }

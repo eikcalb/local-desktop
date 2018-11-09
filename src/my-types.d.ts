@@ -5,4 +5,7 @@ declare module 'crypto' {
     export function generateKeyPairSync(type: string, options: any): {}
 }
 
-declare function require(arg: string): any
+declare global {
+    interface Window { require: NodeRequire }
+}
+

@@ -5,6 +5,7 @@
   "main": "index.html",
   "user-agent": "%name: %ver by Eikcalb",
   "single-instance": true,
+  "app-id": "io.a.eikcalb.local-desktop",
   "author": {
     "name": "Agwa Israel Onome",
     "email": "agwaisraelonome@gmail.com"
@@ -18,7 +19,7 @@
     "toolbar": false,
     "position": "center",
     "min_width": 672,
-    "min_height": 364,
+    "min_height": 558,
     "width": 960,
     "height": 520,
     "transparent": true
