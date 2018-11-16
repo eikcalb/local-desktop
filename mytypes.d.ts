@@ -9,3 +9,4 @@ declare global {
     interface Window { require: NodeRequire }
 }
 
+declare module '*.json'

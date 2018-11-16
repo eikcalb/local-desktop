@@ -13,6 +13,7 @@ export default class Message implements IMessage {
     public priority = Priority.LOW;
     public title: string
     public options: any
+    public seen: boolean = false
 
     setTitle(title: string) {
         this.title = title

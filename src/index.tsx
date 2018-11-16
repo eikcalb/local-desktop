@@ -97,15 +97,24 @@ const Toolbar = connect(({ windowState }: ILocalStore, props: any) => {
   }
 })(RawToolbar)
 
+export const Loader = (props: { loading?: boolean, style?: any }) => {
+  <div style={props.style} hidden={!props.loading} className="App-loading" >
+    <div className="App-loading-item animated infinite" />
+    <div className="App-loading-item animated infinite" style={{ animationDelay: '0.19s' }} />
+    <div className="App-loading-item animated infinite" style={{ animationDelay: '0.375s' }} />
+  </div>
+}
+
 
 
 ReactDOM.render(
   <Provider store={store} >
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Toolbar title={"LOCAL DESKTOP APPICATION"} />
+      <Toolbar title={"LOCAL DESKTOP SERVER"} />
       <Router>
         <App />
       </Router>
+      <div ></div>
     </div>
   </Provider>,
   document.getElementById('root') as HTMLElement

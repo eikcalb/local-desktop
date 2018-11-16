@@ -35,7 +35,7 @@ body{
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  background:#131313;
+  background:#191919;
   white-space: nowrap;
   z-index: 10000;
 }
@@ -94,7 +94,9 @@ body{
 
 .App-loading{
   flex-direction: row;
-  justify-content: space-between;
+  justify-content: space-evenly;
+  align-items: center;
+  margin: 2em auto;
   width:4.3em;
   display:flex;
 }
@@ -105,7 +107,7 @@ body{
   animation-name: appLoading;
   height:0.7em;
   width:0.7em;
-  animation-duration: 2s
+  animation-duration: 0.5s
 }
 
 @keyframes appLoading{

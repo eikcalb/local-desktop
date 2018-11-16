@@ -10,6 +10,8 @@ export default class User {
     public faceDescriptor?: FullFaceDescription;
     useFingerprint?: boolean;
     isactive: boolean = false;
+    isAdmin: false
+    isPrivate: true
     location?: Location;
     vehicles?: Vehicle[] = []
     profile?: string;

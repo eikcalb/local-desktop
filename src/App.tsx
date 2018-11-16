@@ -1,18 +1,20 @@
-import { AppBar, Button, colors, createMuiTheme, createStyles, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, Drawer, IconButton, InputAdornment, LinearProgress, List, ListItem, ListItemText, MuiThemeProvider, Paper, TextField, Theme, Toolbar, Typography, withStyles } from '@material-ui/core';
+import { AppBar, Button, colors, createMuiTheme, createStyles, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, Drawer, Icon, IconButton, InputAdornment, LinearProgress, List, ListItem, ListItemText, MuiThemeProvider, Paper, Snackbar, TextField, Theme, Toolbar, Typography, withStyles, Zoom } from '@material-ui/core';
 import classNames from "classnames";
 import * as React from 'react';
 import { FaMap } from 'react-icons/fa';
-import { MdClose, MdLock, MdMenu } from 'react-icons/md';
+import { MdCancel, MdLock, MdMenu, MdPersonAdd } from 'react-icons/md';
 import { connect } from 'react-redux';
 import { Route, Switch } from 'react-router-dom';
 import { Dispatch } from 'redux';
 import './App.css';
+import particlesConfig from './particlesjs-config.json'
 import Auth from './auth';
 import Message from './notification';
 import ROUTES from "./routes";
-import start, { isFirstRun } from './startup';
+import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
 import { NOTIFICATION } from './types';
+import Particles,{IParticlesParams} from "react-particles-js";
 // import startup from './startup';
 
 export interface IProps {
@@ -21,7 +23,9 @@ export interface IProps {
   showProgress?: boolean,
   showAppBar?: boolean,
   auth?: Auth,
-  notify?: any
+  notify?: any,
+  newNotification?: Message
+  theme?: Theme
 }
 
 const MAX_NUM_TRIALS = 2
@@ -93,7 +97,8 @@ const styles = createStyles((theme: Theme) => ({
       easing: theme.transitions.easing.easeIn,
       duration: theme.transitions.duration.leavingScreen
     }),
-    marginLeft: -drawerWidth
+    marginLeft: -drawerWidth,
+    paddingBottom: theme.spacing.unit * 4.2
   },
   contentShift: {
     transition: theme.transitions.create(['width', 'margin'], {
@@ -103,6 +108,7 @@ const styles = createStyles((theme: Theme) => ({
     marginLeft: 0
   },
   toolbar: theme.mixins.toolbar,
+  paper: {},
   dialogRoot: {
     position: 'absolute'
   },
@@ -110,11 +116,27 @@ const styles = createStyles((theme: Theme) => ({
     alignItems: 'center',
     display: 'flex',
     justifyContent: 'center'
+  },
+  snackbarRoot: {
+    maxWidth: '50%'
+  },
+  signatureRoot: {
+    position: 'absolute',
+    bottom: '1em',
+    left: 0,
+    width: '100%',
+    paddingLeft: theme.spacing.unit,
+    paddingRight: theme.spacing.unit,
+    textAlign: 'start',
+    [theme.breakpoints.down('md')]: {
+      textAlign: 'center'
+    }
+
   }
 }))
 
 class App extends React.Component<IProps, unknown> {
-
+private particlesParams:IParticlesParams
   state = {
     drawerOpen: false,
     adminDialogOpen: true,
@@ -123,7 +145,8 @@ class App extends React.Component<IProps, unknown> {
     adminPasswordError: false,
     adminPasswordLoading: false,
     setupNewAdmin: false,
-    numTrials: 0
+    numTrials: 0,
+    loading: false
   }
 
   constructor(props: IProps) {
@@ -131,9 +154,20 @@ class App extends React.Component<IProps, unknown> {
     if (isFirstRun()) {
       this.state.setupNewAdmin = true
     }
+    this.particlesParams = JSON.parse(particlesConfig)
     // Run scripts needed to startup application
     // startup('lord')
     // console.log(window.require('fs'))
+  }
+
+  parseNotification(notification: Message) {
+    const notificationWithTitle = (<div><b>{notification.title}</b><p>{notification.message}</p></div>)
+    const notificationWithoutTitle = (<div>{notification.message}</div>)
+
+    return (<Snackbar autoHideDuration={3000} open={notification != undefined && !notification.seen} onClose={() => { notification.seen = true }}
+      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+      classes={{ root: this.props.classes.snackbarRoot }}
+      message={notification.title ? notificationWithTitle : notificationWithoutTitle} {...notification.options} />)
   }
 
   public render() {
@@ -164,21 +198,26 @@ class App extends React.Component<IProps, unknown> {
             </List>
           </Drawer>
           <main className={classNames("App", this.props.classes.content, { [this.props.classes.contentShift]: this.state.drawerOpen && this.props.showAppBar })}>
-            <div className={this.props.classes.toolbar} />
+            <div hidden={!this.state.drawerOpen} className={this.props.classes.toolbar} />
+            <Particles  />
             <Switch>
               {...ROUTES}
               <Route render={() => (
-                <div>
-                  <Paper elevation={2} style={{ padding: '3em' }} >
-
-                    <FaMap className="animated bounce" size={'10em'} />
-                    <h1 className="App-title">Welcome to Local</h1>
-                    <div className="App-loading" >
-                      <div className="App-loading-item animated infinite" />
-                      <div className="App-loading-item animated infinite" style={{ animationDelay: '0.75s' }} />
-                      <div className="App-loading-item animated infinite" style={{ animationDelay: '1.5s' }} />
-                    </div>
-                  </Paper>
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Zoom in>
+                    <Paper className="animated fadein" style={{ background: this.props.theme ? `${this.props.theme.palette.secondary.dark}aa` : '', padding: '3em', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }} >
+                      <FaMap color='#ddd' className="animated bounce" size={'10em'} />
+                      <Typography className="App-title" variant='h6'>Welcome to Local for Enterprise!</Typography>
+                      <Button style={{ margin: 8 }} size='small' variant='contained' fullWidth color={'primary'} >
+                        <Icon><MdLock /></Icon>&emsp;
+                        Login
+                    </Button>
+                      <Button style={{ margin: 8 }} size='small' variant='contained' fullWidth color={'default'} >
+                        <Icon><MdPersonAdd /></Icon>&emsp;
+                        Register
+                    </Button>
+                    </Paper>
+                  </Zoom>
                   {/* <Tracker play track={Target.DETECT} detection={() => { return false }} notify={() => { return false }} recognize={() => { return false }} /> */}
                 </div>
               )
@@ -188,7 +227,7 @@ class App extends React.Component<IProps, unknown> {
             {this.state.setupNewAdmin ? (
               <Dialog
                 BackdropProps={{ style: { position: 'absolute' } }} container={this}
-                PaperProps={this.state.adminPasswordError ? { style: { animationName: 'wobble', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em' } } : undefined}
+                PaperProps={this.state.adminPasswordError ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { flex: 1 } }}
                 classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
                 disableBackdropClick disableEscapeKeyDown
                 scroll='body' onClose={() => null} open={this.state.adminDialogOpen} >
@@ -202,21 +241,28 @@ class App extends React.Component<IProps, unknown> {
                       <b>YOU CANNOT CHANGE THIS PASSWORD ONCE SET!</b>
                     </Typography>
                   </DialogContentText>
-                  <TextField inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value }) }} helperText={'Password should be at least 8 characters long and may be a phrase that can be easily remembered!'} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter New Admin Password' type='password' name='password' />
-                  <TextField inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPasswordVerify: value, adminPasswordError: !value || this.state.adminPassword !== value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Verify New Admin Password' type='password' name='vpassword' />
+                  <TextField inputProps={{ autoFocus: true, startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value || (value !== this.state.adminPasswordVerify && this.state.adminPasswordVerify) }) }} helperText={'Password should be at least 8 characters long and may be a phrase that can be easily remembered!'} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter New Admin Password' type='password' name='password' />
+                  <TextField inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPasswordVerify: value, adminPasswordError: !value || (this.state.adminPassword && this.state.adminPassword !== value) }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Verify New Admin Password' type='password' name='vpassword' />
                 </DialogContent>
                 <DialogActions>
                   <Button fullWidth disabled={this.state.adminPasswordError || this.state.adminPasswordLoading}
                     variant={'raised'} color='primary'
-                    onClick={() => {
+                    onClick={async () => {
                       let pass = this.state.adminPassword, vPass = this.state.adminPasswordVerify
-                      if (pass === vPass && pass !== '' && vPass.trim() !== '' && pass.length > 8) {
+                      if (pass === vPass && pass !== '' && vPass.trim() !== '' && pass.length >= 8 && !this.state.adminPasswordLoading) {
                         this.setState({ adminPasswordLoading: true })
-                        let key
-                        if (this.props.auth && (key = this.props.auth.genAdminKey(this.state.adminPassword))) {
-                          this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
-                          this.props.notify("Never forget your password. If that happens, you will lose all Your data", "Successfully Created Admin Credentials!")
-                          start(String(key))
+                        let key: any
+                        if (this.props.auth && (key = await this.props.auth.genAdminKey(this.state.adminPassword))) {
+                          try {
+                            this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
+                            this.props.notify("Never forget your password. If that happens, you will lose all Your data", "Successfully Created Admin Credentials!")
+                            await start(key.key)
+                          }
+                          catch (e) {
+                            this.setState({ adminPasswordError: true, adminPasswordLoading: false })
+                            console.log(e)
+                            rollBack()
+                          }
                           return
                         }
                       }
@@ -229,50 +275,61 @@ class App extends React.Component<IProps, unknown> {
               (
                 <Dialog
                   BackdropProps={{ style: { position: 'absolute' } }} container={this}
-                  PaperProps={this.state.adminPasswordError ? { style: { animationName: 'wobble', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em' } } : undefined}
+                  PaperProps={this.state.adminPasswordError ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { flex: 1 } }}
                   classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
                   disableBackdropClick disableEscapeKeyDown
                   scroll='body' onClose={() => null} open={this.state.adminDialogOpen} >
-                  <DialogTitle >Set Admin Password</DialogTitle>
+                  <DialogTitle >Enter Your Administrator Password</DialogTitle>
                   <DialogContent>
                     <DialogContentText gutterBottom paragraph>
-                      Enter Your Administrator Password
-                  <br />
                       <Typography hidden={!this.state.adminPasswordError} color='error' paragraph>
-                        <b>Password Error: {`${this.state.numTrials} ${this.state.numTrials > 1 ? 's' : ''} so far, maximum allowed is ${MAX_NUM_TRIALS}`}</b>
+                        <b>Password Error: {`${this.state.numTrials} ${this.state.numTrials > 1 ? 'tries' : 'try'} so far, maximum allowed is ${MAX_NUM_TRIALS}`}</b>
                       </Typography>
                     </DialogContentText>
                     <TextField disabled={this.state.numTrials >= MAX_NUM_TRIALS} inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value }) }} helperText={'Password should the same password you previously set!'} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Admin Password' type='password' name='password' />
                   </DialogContent>
-                  <DialogActions hidden={this.state.numTrials < MAX_NUM_TRIALS} >
-                    <Button fullWidth disabled={this.state.numTrials >= MAX_NUM_TRIALS || this.state.adminPasswordError || this.state.adminPasswordLoading}
-                      variant={'raised'} color='secondary'
-                      onClick={() => {
-                        nw.App.quit()
-                      }}>
-                      <MdClose /> Close Application
-                </Button>
-                    <Button hidden={this.state.numTrials >= MAX_NUM_TRIALS} fullWidth
-                      variant={'raised'} color='primary'
-                      onClick={() => {
-                        let pass = this.state.adminPassword
-                        if (this.state.numTrials < MAX_NUM_TRIALS || (pass.trim() !== '' && pass.length > 8)) {
-                          this.setState({ adminPasswordLoading: true })
-                          // if (this.props.auth && this.props.auth.genAdminKey(this.state.adminPassword)) {
-                          //   this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
-                          //   this.props.notify("Successfully Created Admin Credentials!")
-                          //   return
-                          // }
+                  <DialogActions>
+                    {this.state.numTrials >= MAX_NUM_TRIALS ? (
+                      <Button fullWidth
+                        variant={'raised'} color='secondary'
+                        onClick={() => {
+                          nw.App.quit()
+                        }}>
+                        <MdCancel fontSize={'1em'} />&emsp; Close Application
+                      </Button>
+                    ) : (
+                        <Button fullWidth disabled={this.state.adminPassword.length < 8}
+                          variant={'raised'} color='primary'
+                          onClick={async () => {
+                            let pass = this.state.adminPassword
+                            if (this.state.numTrials < MAX_NUM_TRIALS && (pass.trim() !== '' && pass.length >= 8) && !this.state.adminPasswordLoading) {
+                              this.setState({ adminPasswordLoading: true })
+                              if (this.props.auth) {
+                                try {
+                                  await this.props.auth.grantApplicationAccess(this.state.adminPassword)
+                                  this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
+                                } catch (err) {
+                                  console.log(err)
+                                  this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
+                                }
+                                return
+                              }
 
-                        }
-                        this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
-                      }}>
-                      Enter
-                </Button>
+                            }
+                            this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
+                          }
+                          }>
+                          Enter
+                      </Button>
+                      )}
                   </DialogActions>
                 </Dialog>
               )
             }
+            <Typography classes={{ root: this.props.classes.signatureRoot }} variant={'caption'} align='center' color='default' >
+              &copy; Agwa Israel Onome, 2018
+            </Typography>
+            {this.props.newNotification ? this.parseNotification(this.props.newNotification) : null}
           </main>
         </div>
       </MuiThemeProvider>
@@ -289,7 +346,8 @@ const mapStateToProps = (state: ILocalStore, ownProps: IProps) => {
     user: state.user,
     newUser: state.databaseReady,
     showAppBar: state.windowState.showAppBar,
-    auth: state.auth
+    auth: state.auth,
+    newNotification: state.newNotification
   }
 
 };

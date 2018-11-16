@@ -1,25 +1,27 @@
-import * as jwt from "jsonwebtoken";
-import * as React from "react"
+import { Modal, TextField, Typography } from "@material-ui/core";
 //TODO:  Remove this c and replae declarations with crypto constant defined below
-import * as c from 'crypto'
+import * as jwt from "jsonwebtoken";
+import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import { promisify } from "util";
-import { Modal, Typography, TextField } from "@material-ui/core";
-import { writeFile, writeFileSync } from "fs";
+import { db } from "../store";
 import { appPath } from "../startup";
-import { join } from "path";
 const crypto = window.require('crypto')
+const fs = window.require('fs')
+const { join } = window.require('path')
+const util = window.require('util')
 
 const IV_SEPARATOR = '.'
 const ITERATION_NUM = 64000 * 8// The number of iterations should double from `64000` every 2 years period from 2012
+export const ADMIN_SALT_1_PATH = join(nw.App.dataPath, '.v1.admin.salt')
+export const ADMIN_SALT_2_PATH = join(nw.App.dataPath, '.v1.admin.salt2')
 // const ROOT_PASSWORD='LAGBAJA'
 
 export default class Auth {
     private key: Buffer | string
-    private salt: Buffer | string
-    private adminKey: Buffer | string
-    public adminSalt: Buffer | string
+    // private salt: Buffer | string
+    public adminKey: { key?: Buffer | string, pass?: Buffer | string, pubKey?: Buffer | string }
+    // public adminSalt: Buffer | string
     private digest: string = 'sha512'
     private keySize: number = 124
     private saltLength: number = 48
@@ -28,37 +30,65 @@ export default class Auth {
         // this.key = process.env.LOCAL_PASSWORD
     }
 
-    genAdminKey(key: string) {
+    async genAdminKey(key: string): Promise<{ key: string | Buffer, salt: string | Buffer } | false> {
         let salt = crypto.randomBytes(this.saltLength)
+        let salt2 = crypto.randomBytes(this.saltLength)
         try {
-            this.adminKey = this.genKey(key, salt)
-            this.adminSalt = salt;
-            writeFileSync(join(appPath, '.v1.admin.salt'), salt)
-            return { salt: this.adminSalt, key: this.adminKey }
+            let hash = await this.genKey(key, salt)
+            let hash2 = await this.genKey(salt, salt2, ITERATION_NUM / 10, this.keySize / 2)
+            fs.writeFileSync(ADMIN_SALT_1_PATH, salt)
+            fs.writeFileSync(ADMIN_SALT_2_PATH, salt2)
+            db.setItem('.v1.admin.passwordHash', hash, (err) => {
+                if (err) throw err
+            })
+            // HASH2 should be utf8 encoded to prevent errors while creatig keypair
+            return Promise.resolve({ salt: salt2, key: hash2.toString('utf8') })
         } catch (e) {
-            return false
+            console.log(e, `salt1: ${salt}`, `salt2: ${salt2}`)
+            return Promise.reject(false)
         }
     }
 
-    genUserKey(key: string) {
+    async genUserKey(key: string): Promise<{ key: string | Buffer, salt: string | Buffer } | false> {
         let salt = crypto.randomBytes(this.saltLength)
         try {
-            this.key = this.genKey(key, salt)
-            this.salt = salt;
-
-            return { salt: this.salt, key: this.key }
+            let hash = await this.genKey(key, salt)
+            return Promise.resolve({ salt, key: hash })
         } catch (e) {
-            return false
+            return Promise.reject(false)
         }
     }
 
-    private genKey(key: string, salt: any) {
-        let newKey = crypto.pbkdf2Sync(key, salt, ITERATION_NUM, this.keySize, this.digest)
-
-        console.log(`Successfully created new password! KeySize: ${this.keySize}, Digest: ${this.digest}`, crypto, c)
-        return newKey
+    private genKey(key: string | Buffer, salt: Buffer | string, iteration: number = ITERATION_NUM, size: number = this.keySize): Promise<Buffer> {
+        return new Promise((res) => {
+            let newKey = crypto.pbkdf2Sync(key, salt, iteration, size, this.digest)
+            return res(newKey)
+        })
     }
 
+    public grantApplicationAccess(pass: string): Promise<unknown> {
+        let passwordHash: string
+        return new Promise((res, rej) => {
+            try {
+                db.getItem('.v1.admin.passwordHash', (err, val) => {
+                    if (err) throw err
+                    passwordHash = val as string
+                    let salt = fs.readFileSync(ADMIN_SALT_1_PATH)
+                    fs.readFile(ADMIN_SALT_2_PATH, async (err: any, salt2: any) => {
+                        if (err) throw err
+                        if (crypto.timingSafeEqual(Buffer.from(passwordHash), await this.genKey(pass, salt))) {
+                            this.adminKey = { key: fs.readFileSync(join(appPath, '.v1.privkey')), pass: (await this.genKey(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8'), pubKey: fs.readFileSync(join(appPath, '.v1.pubkey')) }
+                            return res()
+                        } else {
+                            return rej(new Error('Access denied!'))
+                        }
+                    })
+                })
+            } catch (e) {
+                rej(e)
+            }
+        })
+    }
 
     encrypt(alg: string = 'aes-256-cbc', key?: any) {
         let iv = crypto.randomBytes(16).toString('latin1')
@@ -83,9 +113,11 @@ export default class Auth {
     }
 
     public static async generateKeyPair(type: 'rsa' | 'dsa' | 'ec', options: {}): Promise<any> {
-        return promisify<any, any, any>(crypto.generateKeyPair)(type, options).then(res => {
+        console.log('geneate keypair arguments: ', arguments)
+        return util.promisify(crypto.generateKeyPair)(type, options).then((res: any) => {
+            console.log(`Promisified keypair generator result: `, res)
             return Promise.resolve(res)
-        }).catch(e => { throw e })
+        }).catch((e: any) => { throw e })
     }
 }
 

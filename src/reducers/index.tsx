@@ -29,15 +29,19 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
             break
         case TYPES.NOTIFICATION:
             let message: Message = action.body
-            if (message.title) {
-                new Notification(message.title, {
-                    requireInteraction: false,
-                    icon: logo,
-                    ...message.options,
-                    body: message.message
-                })
+            if (document.hasFocus()) {
+                newState.newNotification = message
             } else {
-                new Notification(message.message, message.options)
+                if (message.title) {
+                    new Notification(message.title, {
+                        requireInteraction: false,
+                        icon: logo,
+                        ...message.options,
+                        body: message.message
+                    })
+                } else {
+                    new Notification(message.message, message.options)
+                }
             }
             break
     }
