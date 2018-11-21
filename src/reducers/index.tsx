@@ -9,6 +9,9 @@ const rootWindow = nw.Window.get()
 export default function reducer(state: ILocalStore, action: IAction): ILocalStore {
     let newState = Object.assign({}, state)
     switch (action.type) {
+        case TYPES.LOGIN:
+            newState.user = action.body
+            break
         case TYPES.CLOSE_APPLICATION_WINDOW:
             newState.windowState.closed = action.body
             rootWindow.close(action.body)

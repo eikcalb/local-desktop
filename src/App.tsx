@@ -3,18 +3,20 @@ import classNames from "classnames";
 import * as React from 'react';
 import { FaMap } from 'react-icons/fa';
 import { MdCancel, MdLock, MdMenu, MdPersonAdd } from 'react-icons/md';
+import Particles from "react-particles-js";
 import { connect } from 'react-redux';
-import { Route, Switch } from 'react-router-dom';
+import { Link, Route, Switch, withRouter } from 'react-router-dom';
 import { Dispatch } from 'redux';
 import './App.css';
-import particlesConfig from './particlesjs-config.json'
 import Auth from './auth';
+import Login from './auth/login';
+import Register from './auth/register';
 import Message from './notification';
+import particlesConfig from './particlesjs-config.json';
 import ROUTES from "./routes";
 import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
 import { NOTIFICATION } from './types';
-import Particles,{IParticlesParams} from "react-particles-js";
 // import startup from './startup';
 
 export interface IProps {
@@ -25,7 +27,6 @@ export interface IProps {
   auth?: Auth,
   notify?: any,
   newNotification?: Message
-  theme?: Theme
 }
 
 const MAX_NUM_TRIALS = 2
@@ -136,7 +137,6 @@ const styles = createStyles((theme: Theme) => ({
 }))
 
 class App extends React.Component<IProps, unknown> {
-private particlesParams:IParticlesParams
   state = {
     drawerOpen: false,
     adminDialogOpen: true,
@@ -146,7 +146,10 @@ private particlesParams:IParticlesParams
     adminPasswordLoading: false,
     setupNewAdmin: false,
     numTrials: 0,
-    loading: false
+    loading: false,
+    dialogOpen: false,
+    passwordError: false,
+    particlesParams: particlesConfig
   }
 
   constructor(props: IProps) {
@@ -154,7 +157,7 @@ private particlesParams:IParticlesParams
     if (isFirstRun()) {
       this.state.setupNewAdmin = true
     }
-    this.particlesParams = JSON.parse(particlesConfig)
+    console.log('particles config: ', particlesConfig)
     // Run scripts needed to startup application
     // startup('lord')
     // console.log(window.require('fs'))
@@ -199,35 +202,39 @@ private particlesParams:IParticlesParams
           </Drawer>
           <main className={classNames("App", this.props.classes.content, { [this.props.classes.contentShift]: this.state.drawerOpen && this.props.showAppBar })}>
             <div hidden={!this.state.drawerOpen} className={this.props.classes.toolbar} />
-            <Particles  />
             <Switch>
               {...ROUTES}
               <Route render={() => (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                  <Particles params={this.state.particlesParams} style={{ position: 'absolute', top: 0, left: 0, background: 'linear-gradient(rgb(1, 1, 29), 60%, rgb(0, 0, 35), 94%, rgb(2, 2, 19))' }} />
                   <Zoom in>
-                    <Paper className="animated fadein" style={{ background: this.props.theme ? `${this.props.theme.palette.secondary.dark}aa` : '', padding: '3em', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }} >
+                    <Paper className="animated fadein" style={{ padding: '3em', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }} >
                       <FaMap color='#ddd' className="animated bounce" size={'10em'} />
                       <Typography className="App-title" variant='h6'>Welcome to Local for Enterprise!</Typography>
-                      <Button style={{ margin: 8 }} size='small' variant='contained' fullWidth color={'primary'} >
-                        <Icon><MdLock /></Icon>&emsp;
-                        Login
-                    </Button>
-                      <Button style={{ margin: 8 }} size='small' variant='contained' fullWidth color={'default'} >
-                        <Icon><MdPersonAdd /></Icon>&emsp;
-                        Register
-                    </Button>
+                      <Button style={{ margin: 8, alignItems: 'center' }} size='small'
+                        //@ts-ignore
+                        component={({ ...props }) => <Link replace {...props} to={'/login'} />} variant='contained' fullWidth color={'primary'} >
+                        <Icon><MdLock /></Icon>&emsp; Login
+                        </Button>
+                      <Button style={{ margin: 8, alignItems: 'center' }} size='small'
+                        //@ts-ignore
+                        component={({ ...props }) => <Link replace {...props} to={'/register'} />} variant='contained' fullWidth color={'default'} >
+                        <Icon><MdPersonAdd /></Icon>&emsp; Register
+                        </Button>
                     </Paper>
                   </Zoom>
                   {/* <Tracker play track={Target.DETECT} detection={() => { return false }} notify={() => { return false }} recognize={() => { return false }} /> */}
                 </div>
               )
               } />
-
             </Switch>
+            <Route exact strict path={'/login'} render={(props) => <Login {...props} classes={this.props.classes} dialogContainer={this} />} />
+            <Route exact strict path={'/register'} render={(props) => <Register {...props} classes={this.props.classes} dialogContainer={this} />} />
+
             {this.state.setupNewAdmin ? (
               <Dialog
                 BackdropProps={{ style: { position: 'absolute' } }} container={this}
-                PaperProps={this.state.adminPasswordError ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { flex: 1 } }}
+                PaperProps={this.state.adminPasswordError ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { maxWidth: '30em', flex: 1 } }}
                 classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
                 disableBackdropClick disableEscapeKeyDown
                 scroll='body' onClose={() => null} open={this.state.adminDialogOpen} >
@@ -275,7 +282,7 @@ private particlesParams:IParticlesParams
               (
                 <Dialog
                   BackdropProps={{ style: { position: 'absolute' } }} container={this}
-                  PaperProps={this.state.adminPasswordError ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { flex: 1 } }}
+                  PaperProps={this.state.adminPasswordError ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { maxWidth: '30em', flex: 1 } }}
                   classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
                   disableBackdropClick disableEscapeKeyDown
                   scroll='body' onClose={() => null} open={this.state.adminDialogOpen} >
@@ -360,4 +367,4 @@ const mapDispatchToProps = (dispatch: Dispatch, ownProps: IProps) => {
   }
 };
 
-export default withStyles(styles)(connect(mapStateToProps, mapDispatchToProps)(App));
+export default withRouter<any>(connect(mapStateToProps, mapDispatchToProps)(withStyles(styles)(App)));

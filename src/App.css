@@ -22,6 +22,10 @@ body{
   border-radius: 0;
 }
 
+a{
+  text-decoration: none
+}
+
 
 .Toolbar{
   -webkit-app-region: drag;
@@ -38,6 +42,7 @@ body{
   background:#191919;
   white-space: nowrap;
   z-index: 10000;
+  border-radius: 1em 1em 0 0
 }
 
 .Controls{

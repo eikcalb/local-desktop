@@ -6,5 +6,5 @@ export const Links = {
 }
 
 export default [
-    <Route key={1} path={Links.AUTHENTICATION} />
+    <Route key={1} strict exact path={Links.AUTHENTICATION} />
 ]

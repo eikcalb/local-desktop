@@ -10,7 +10,7 @@ export const DOCUMENTS = {
 
 
 export const DB_NAME = "Local-Desktop-Database"
-export const DB_VERSION = 1
+export const DB_VERSION = 3
 
 //  TODO:   Create a localForage driver to persist changes to firebase database
 export const db = localforage.createInstance({
@@ -24,7 +24,7 @@ export const db = localforage.createInstance({
 
 let idb: IDBDatabase;
 export function getIDB(force: boolean = false): Promise<IDBDatabase> {
-    if (idb || !false) {
+    if (idb && !force) {
         return Promise.resolve(idb)
     } else {
         return new Promise<IDBDatabase>((res, rej) => {
@@ -33,9 +33,13 @@ export function getIDB(force: boolean = false): Promise<IDBDatabase> {
             request.onupgradeneeded = function ({ target }) {
                 if (target) {
                     // Create User store and setup indices
-                    let store: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore('users', { keyPath: 'uid' })
+                    let store: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore('users', { keyPath: 'id' })
                     store.createIndex('email', 'email', { unique: true })
                     store.createIndex('username', 'username', { unique: true })
+
+                    let superStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore('superusers', { keyPath: 'id' })
+                    superStore.createIndex('email', 'email', { unique: true })
+                    superStore.createIndex('username', 'username', { unique: true })
                 }
             }
             request.onsuccess = function (e) {

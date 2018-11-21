@@ -109,13 +109,14 @@ export const Loader = (props: { loading?: boolean, style?: any }) => {
 
 ReactDOM.render(
   <Provider store={store} >
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-      <Toolbar title={"LOCAL DESKTOP SERVER"} />
-      <Router>
+    <Router>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <Toolbar title={"LOCAL DESKTOP SERVER"} />
         <App />
-      </Router>
-      <div ></div>
-    </div>
+        <div ></div>
+      </div>
+    </Router>
+
   </Provider>,
   document.getElementById('root') as HTMLElement
 );

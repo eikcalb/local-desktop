@@ -21,6 +21,9 @@ export type WINDOW_CONTROL_ACTION_SHOWAPPBAR = typeof WINDOW_CONTROL_ACTION_SHOW
 export const LOGIN = "LOGIN";
 export type LOGIN = typeof LOGIN
 
+export const REGISTER = "REGISTER";
+export type REGISTER = typeof REGISTER
+
 
 export const FACE_DETECT = "FACE_DETECT";
 export type FACE_DETECT = typeof FACE_DETECT

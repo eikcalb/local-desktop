@@ -342,7 +342,7 @@ export default connect(null, (dispatch: Dispatch, ownprops: ITrackerProps) => {
 
 export class TrackerResult {
     public success: boolean;
-    public data: [] | any;
+    public data: any[] | any;
 
     constructor(success: boolean, data?: {}) {
         this.success = success;

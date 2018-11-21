@@ -4,8 +4,9 @@ import * as jwt from "jsonwebtoken";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import { db } from "../store";
+import { db, getIDB } from "../store";
 import { appPath } from "../startup";
+import SuperUser from "../types/SuperUser";
 const crypto = window.require('crypto')
 const fs = window.require('fs')
 const { join } = window.require('path')
@@ -34,8 +35,8 @@ export default class Auth {
         let salt = crypto.randomBytes(this.saltLength)
         let salt2 = crypto.randomBytes(this.saltLength)
         try {
-            let hash = await this.genKey(key, salt)
-            let hash2 = await this.genKey(salt, salt2, ITERATION_NUM / 10, this.keySize / 2)
+            let hash = await this.genHash(key, salt)
+            let hash2 = await this.genHash(salt, salt2, ITERATION_NUM / 10, this.keySize / 2)
             fs.writeFileSync(ADMIN_SALT_1_PATH, salt)
             fs.writeFileSync(ADMIN_SALT_2_PATH, salt2)
             db.setItem('.v1.admin.passwordHash', hash, (err) => {
@@ -52,19 +53,91 @@ export default class Auth {
     async genUserKey(key: string): Promise<{ key: string | Buffer, salt: string | Buffer } | false> {
         let salt = crypto.randomBytes(this.saltLength)
         try {
-            let hash = await this.genKey(key, salt)
+            let hash = await this.genHash(key, salt)
             return Promise.resolve({ salt, key: hash })
         } catch (e) {
             return Promise.reject(false)
         }
     }
 
-    private genKey(key: string | Buffer, salt: Buffer | string, iteration: number = ITERATION_NUM, size: number = this.keySize): Promise<Buffer> {
+    private genHash(key: string | Buffer, salt: Buffer | string, iteration: number = ITERATION_NUM, size: number = this.keySize): Promise<Buffer> {
         return new Promise((res) => {
             let newKey = crypto.pbkdf2Sync(key, salt, iteration, size, this.digest)
             return res(newKey)
         })
     }
+
+    public registerSuperUser(username: string, email: string, pass: string): Promise<SuperUser> {
+        let auth = this
+        return new Promise((res, rej) => {
+            getIDB().then(db => {
+                let tranx = db.transaction('superusers', 'readwrite')
+                tranx.onerror = tranx.onabort = function (e) {
+                    return rej(this.error)
+                }
+                let user = new SuperUser(username)
+                user.email = email
+                let store = tranx.objectStore('superusers')
+                let index = store.index('username')
+                index.get(username).addEventListener('success', async function (e) {
+                    if (this.result) {
+                        // User currently exists
+                        return rej(new Error('User already exists!'))
+                    }
+                    else {
+                        let salt = crypto.randomBytes(auth.saltLength)
+                        user.password = await auth.genHash(pass, salt)
+                        user.salt = salt
+                        user.id = crypto.randomBytes(auth.saltLength).toString('hex')
+                        store.put(user).addEventListener('success', async function () {
+                            if (this.result) {
+                                console.log(this.result)
+                                //TODO:     Generate new predictible password for encryption
+                                delete user.password
+                                res(user)
+                            } else {
+                                rej(new Error('Could not complete registration!'))
+                            }
+                        })
+
+                    }
+                })
+            })
+        })
+
+    }
+
+    public loginSuperUser(username: string, pass: string): Promise<SuperUser> {
+        let auth = this
+        return new Promise((res, rej) => {
+            getIDB().then(db => {
+                let tranx = db.transaction('superusers', 'readonly')
+                tranx.onerror = tranx.onabort = function (e) {
+                    return rej(this.error)
+                }
+                let index = tranx.objectStore('superusers').index('username')
+                index.get(username).addEventListener('success', async function (e) {
+                    if (this.result) {
+                        let user = this.result //as SuperUser
+                        let hash: Buffer = await auth.genHash(pass, user.salt)
+
+                        if (crypto.timingSafeEqual(hash, user.password)) {
+                            //TODO:     Generate new predictible password for encryption
+                            delete user.password
+                            return res(user as SuperUser)
+                        } else {
+                            return rej(new Error('Password or username incorrect!'))
+                        }
+                    }
+                    else {
+                        return rej(new Error('Username not found!'))
+                    }
+                })
+            })
+        })
+
+    }
+
 
     public grantApplicationAccess(pass: string): Promise<unknown> {
         let passwordHash: string
@@ -72,12 +145,13 @@ export default class Auth {
             try {
                 db.getItem('.v1.admin.passwordHash', (err, val) => {
                     if (err) throw err
+                    if (!val) rej(new Error('Password has not been previously set!'))
                     passwordHash = val as string
                     let salt = fs.readFileSync(ADMIN_SALT_1_PATH)
                     fs.readFile(ADMIN_SALT_2_PATH, async (err: any, salt2: any) => {
                         if (err) throw err
-                        if (crypto.timingSafeEqual(Buffer.from(passwordHash), await this.genKey(pass, salt))) {
-                            this.adminKey = { key: fs.readFileSync(join(appPath, '.v1.privkey')), pass: (await this.genKey(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8'), pubKey: fs.readFileSync(join(appPath, '.v1.pubkey')) }
+                        if (crypto.timingSafeEqual(Buffer.from(passwordHash), await this.genHash(pass, salt))) {
+                            this.adminKey = { key: fs.readFileSync(join(appPath, '.v1.privkey')), pass: (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8'), pubKey: fs.readFileSync(join(appPath, '.v1.pubkey')) }
                             return res()
                         } else {
                             return rej(new Error('Access denied!'))
