@@ -38,7 +38,11 @@ export class Login extends React.Component<ILoginProps, any>{
 
     render() {
         if (this.state.loginSuccess) {
-            return (<Redirect to={this.props.location.state.from || { pathname: '/' }} />)
+            if (this.props.location.state && this.props.location.state.from) {
+                let { from } = this.props.location.state
+                return (<Redirect to={from} />)
+            }
+            return (<Redirect to={{ pathname: '/' }} />)
         } else if (this.state.cancel) {
             if (this.props.location.state && this.props.location.state.from) {
                 let { from } = this.props.location.state

@@ -4,9 +4,10 @@ import * as jwt from "jsonwebtoken";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import { db, getIDB } from "../store";
+import { db, getIDB, DOCUMENTS } from "../store";
 import { appPath } from "../startup";
 import SuperUser from "../types/SuperUser";
+import { ITrackerState } from "../tracker";
 const crypto = window.require('crypto')
 const fs = window.require('fs')
 const { join } = window.require('path')
@@ -67,17 +68,18 @@ export default class Auth {
         })
     }
 
-    public registerSuperUser(username: string, email: string, pass: string): Promise<SuperUser> {
+    public registerSuperUser(username: string, email: string, pass: string, trackerData: ITrackerState): Promise<SuperUser> {
         let auth = this
         return new Promise((res, rej) => {
-            getIDB().then(db => {
-                let tranx = db.transaction('superusers', 'readwrite')
+            getIDB(true).then(db => {
+                let tranx = db.transaction([DOCUMENTS.SUPER_USERS, DOCUMENTS.TRACKER], 'readwrite')
                 tranx.onerror = tranx.onabort = function (e) {
                     return rej(this.error)
                 }
                 let user = new SuperUser(username)
                 user.email = email
-                let store = tranx.objectStore('superusers')
+                user.isNewUser = user.isactive = user.isPrivate = true
+                let store = tranx.objectStore(DOCUMENTS.SUPER_USERS)
                 let index = store.index('username')
                 index.get(username).addEventListener('success', async function (e) {
                     if (this.result) {
@@ -94,15 +96,24 @@ export default class Auth {
                                 console.log(this.result)
                                 //TODO:     Generate new predictible password for encryption
                                 delete user.password
-                                res(user)
-                            } else {
-                                rej(new Error('Could not complete registration!'))
+                                let store = tranx.objectStore(DOCUMENTS.TRACKER)
+                                store.put(trackerData).addEventListener('success', async function () {
+                                    if (this.result) {
+                                        console.log(this.result)
+                                        //TODO:   
+                                        res(user)
+                                    } else {
+                                        tranx.abort()
+                                        rej(new Error('Could not complete registration!'))
+                                    }
+                                })
                             }
-                        })
-
+                        }
+                        )
                     }
-                })
-            })
+                }
+                )
+            }).catch(err => rej(err))
         })
 
     }
@@ -110,12 +121,12 @@ export default class Auth {
     public loginSuperUser(username: string, pass: string): Promise<SuperUser> {
         let auth = this
         return new Promise((res, rej) => {
-            getIDB().then(db => {
-                let tranx = db.transaction('superusers', 'readonly')
+            getIDB(true).then(db => {
+                let tranx = db.transaction(DOCUMENTS.SUPER_USERS, 'readonly')
                 tranx.onerror = tranx.onabort = function (e) {
                     return rej(this.error)
                 }
-                let index = tranx.objectStore('superusers').index('username')
+                let index = tranx.objectStore(DOCUMENTS.SUPER_USERS).index('username')
                 index.get(username).addEventListener('success', async function (e) {
                     if (this.result) {
                         let user = this.result //as SuperUser
@@ -124,6 +135,7 @@ export default class Auth {
                         if (crypto.timingSafeEqual(hash, user.password)) {
                             //TODO:     Generate new predictible password for encryption
                             delete user.password
+                            user.isNewUser = false
                             return res(user as SuperUser)
                         } else {
                             return rej(new Error('Password or username incorrect!'))
@@ -133,7 +145,7 @@ export default class Auth {
                         return rej(new Error('Username not found!'))
                     }
                 })
-            })
+            }).catch(err => rej(err))
         })
 
     }

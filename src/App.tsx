@@ -13,6 +13,7 @@ import Login from './auth/login';
 import Register from './auth/register';
 import Message from './notification';
 import particlesConfig from './particlesjs-config.json';
+import particlesConfigStop from './particlesjs-config.stop.json';
 import ROUTES from "./routes";
 import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
@@ -119,7 +120,19 @@ const styles = createStyles((theme: Theme) => ({
     justifyContent: 'center'
   },
   snackbarRoot: {
-    maxWidth: '50%'
+    maxWidth: '50%',
+    left: 'auto',
+    right: '24px',
+    bottom: '24px',
+  },
+  snackbarRootBottomRight: {
+    minWidth: '288px',
+    maxWidth: '568px',
+    [theme.breakpoints.down('md')]: {
+      maxWidth: '50%',
+      borderRadius: '4px'
+    },
+    borderRadius: '4px'
   },
   signatureRoot: {
     position: 'absolute',
@@ -131,7 +144,8 @@ const styles = createStyles((theme: Theme) => ({
     textAlign: 'start',
     [theme.breakpoints.down('md')]: {
       textAlign: 'center'
-    }
+    },
+    textShadow:new Date().getMonth()===11?'#000 0 1px 2px':'#aaa 0 1px 2px'
 
   }
 }))
@@ -147,9 +161,10 @@ class App extends React.Component<IProps, unknown> {
     setupNewAdmin: false,
     numTrials: 0,
     loading: false,
-    dialogOpen: false,
     passwordError: false,
-    particlesParams: particlesConfig
+    particlesParams: particlesConfig,
+    particlesParamsStop: particlesConfigStop,
+    showNotification: true
   }
 
   constructor(props: IProps) {
@@ -157,20 +172,25 @@ class App extends React.Component<IProps, unknown> {
     if (isFirstRun()) {
       this.state.setupNewAdmin = true
     }
-    console.log('particles config: ', particlesConfig)
+
     // Run scripts needed to startup application
     // startup('lord')
     // console.log(window.require('fs'))
   }
 
   parseNotification(notification: Message) {
-    const notificationWithTitle = (<div><b>{notification.title}</b><p>{notification.message}</p></div>)
-    const notificationWithoutTitle = (<div>{notification.message}</div>)
 
-    return (<Snackbar autoHideDuration={3000} open={notification != undefined && !notification.seen} onClose={() => { notification.seen = true }}
-      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-      classes={{ root: this.props.classes.snackbarRoot }}
-      message={notification.title ? notificationWithTitle : notificationWithoutTitle} {...notification.options} />)
+    if (notification) {
+      const notificationWithTitle = (<div><b>{notification.title}</b><p>{notification.message}</p></div>)
+      const notificationWithoutTitle = (<div>{notification.message}</div>)
+      notification.seen = true
+      return (<Snackbar autoHideDuration={5000} open={this.state.showNotification} onClose={() => { this.setState({ showNotification: false }); console.log(notification, this.props.newNotification) }}
+        anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        classes={{ root: this.props.classes.snackbarRoot, anchorOriginBottomRight: this.props.classes.snackbarRootBottomRight }}
+        message={notification.title ? notificationWithTitle : notificationWithoutTitle} {...notification.options} />)
+    } else {
+      return null
+    }
   }
 
   public render() {
@@ -204,9 +224,9 @@ class App extends React.Component<IProps, unknown> {
             <div hidden={!this.state.drawerOpen} className={this.props.classes.toolbar} />
             <Switch>
               {...ROUTES}
-              <Route render={() => (
+              <Route render={(props) => (
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                  <Particles params={this.state.particlesParams} style={{ position: 'absolute', top: 0, left: 0, background: 'linear-gradient(rgb(1, 1, 29), 60%, rgb(0, 0, 35), 94%, rgb(2, 2, 19))' }} />
+                  <Particles params={this.state.adminDialogOpen || !props.match && props.location.pathname !== '/' ? this.state.particlesParamsStop : this.state.particlesParams} style={{ position: 'absolute', top: 0, left: 0, background: new Date().getMonth() === 11 ? '#a44' : 'linear-gradient(rgb(1, 1, 29), 60%, rgb(0, 0, 35), 94%, rgb(2, 2, 19))' }} />
                   <Zoom in>
                     <Paper className="animated fadein" style={{ padding: '3em', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }} >
                       <FaMap color='#ddd' className="animated bounce" size={'10em'} />
@@ -249,7 +269,7 @@ class App extends React.Component<IProps, unknown> {
                     </Typography>
                   </DialogContentText>
                   <TextField inputProps={{ autoFocus: true, startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value || (value !== this.state.adminPasswordVerify && this.state.adminPasswordVerify) }) }} helperText={'Password should be at least 8 characters long and may be a phrase that can be easily remembered!'} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter New Admin Password' type='password' name='password' />
-                  <TextField inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPasswordVerify: value, adminPasswordError: !value || (this.state.adminPassword && this.state.adminPassword !== value) }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Verify New Admin Password' type='password' name='vpassword' />
+                  <TextField inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPasswordVerify: value, adminPasswordError: !value || (this.state.adminPassword && this.state.adminPassword !== value) }) }} required fullWidth variant='outlined' margin='normal' label='Verify New Admin Password' type='password' name='vpassword' />
                 </DialogContent>
                 <DialogActions>
                   <Button fullWidth disabled={this.state.adminPasswordError || this.state.adminPasswordLoading}

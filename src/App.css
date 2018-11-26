@@ -5,6 +5,33 @@ body{
   background-clip:padding-box;
 }
 
+::-webkit-scrollbar{
+  background: transparent
+}
+
+::-webkit-scrollbar-button{
+  background: #224a
+}
+::-webkit-scrollbar-button:hover{
+  background: #335
+}
+::-webkit-scrollbar-corner{
+  background: transparent
+}
+::-webkit-scrollbar-thumb{
+  background: #111a
+}
+::-webkit-scrollbar-thumb:hover{
+  background: #558
+}
+::-webkit-scrollbar-track{
+  background: #0006
+}
+::-webkit-scrollbar-track:hover{
+  background: #8884
+}
+
+
 #root{
   user-select: none;
   display: flex;

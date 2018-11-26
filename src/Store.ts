@@ -1,16 +1,19 @@
 import User from "./types/User";
-import { TrackerStore } from "./tracker";
+import { ITrackerState } from "./tracker";
 import Auth from "./auth";
 import * as localforage from "localforage";
 import Message from "./notification";
 
 export const DOCUMENTS = {
-    savedState: 'saved-state'
+    savedState: 'saved-state',
+    SUPER_USERS: 'superusers',
+    TRACKER: 'tracker',
+    USERS: 'users'
 }
 
 
 export const DB_NAME = "Local-Desktop-Database"
-export const DB_VERSION = 3
+export const DB_VERSION = 1
 
 //  TODO:   Create a localForage driver to persist changes to firebase database
 export const db = localforage.createInstance({
@@ -31,15 +34,20 @@ export function getIDB(force: boolean = false): Promise<IDBDatabase> {
             let request = indexedDB.open(DB_NAME, DB_VERSION)
 
             request.onupgradeneeded = function ({ target }) {
+                console.log('Upgraging database!', target)
                 if (target) {
                     // Create User store and setup indices
-                    let store: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore('users', { keyPath: 'id' })
+                    let store: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.USERS, { keyPath: 'id' })
                     store.createIndex('email', 'email', { unique: true })
                     store.createIndex('username', 'username', { unique: true })
 
-                    let superStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore('superusers', { keyPath: 'id' })
+                    let superStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.SUPER_USERS, { keyPath: 'id' })
                     superStore.createIndex('email', 'email', { unique: true })
                     superStore.createIndex('username', 'username', { unique: true })
+
+                    // Create Face data store and setup indices
+                    let faceStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.TRACKER, { keyPath: 'id' })
+                    faceStore.createIndex('uid', 'uid', { unique: true })
                 }
             }
             request.onsuccess = function (e) {
@@ -66,7 +74,7 @@ export default interface ILocalStore {
     }
     databaseReady: boolean,
     user: User | null,
-    tracker?: TrackerStore
+    tracker?: ITrackerState
     newNotification?: Message
 }
 

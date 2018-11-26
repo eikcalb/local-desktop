@@ -10,6 +10,7 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
     let newState = Object.assign({}, state)
     switch (action.type) {
         case TYPES.LOGIN:
+        case TYPES.REGISTER:
             newState.user = action.body
             break
         case TYPES.CLOSE_APPLICATION_WINDOW:
@@ -35,16 +36,18 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
             if (document.hasFocus()) {
                 newState.newNotification = message
             } else {
+                let notification;
                 if (message.title) {
-                    new Notification(message.title, {
+                    notification = new Notification(message.title, {
                         requireInteraction: false,
                         icon: logo,
                         ...message.options,
                         body: message.message
                     })
                 } else {
-                    new Notification(message.message, message.options)
+                    notification = new Notification(message.message, message.options)
                 }
+                notification.onshow = () => { message.seen = true }
             }
             break
     }

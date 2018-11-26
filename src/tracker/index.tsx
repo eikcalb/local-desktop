@@ -1,13 +1,17 @@
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@material-ui/core";
 import * as faceapi from "face-api.js";
 import { FullFaceDescription } from "face-api.js";
+import { MtcnnResult } from "face-api.js/build/commonjs/mtcnn/types";
 import * as React from "react";
+import { MdCancel } from "react-icons/md";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 import logo from '../logo.svg';
 import Message, { IMessage } from "../notification";
+import { DOCUMENTS, getIDB } from "../store";
 import { FACE_DETECT, FACE_DETECT_ADD, NOTIFICATION } from "../types";
-import { getImageFromMedia, drawCircleFromBox } from "./util";
-import { MtcnnResult } from "face-api.js/build/commonjs/mtcnn/types";
+import { drawCircleFromBox, getImageFromMedia } from "./util";
+import { Redirect } from "react-router";
 
 export enum Target {
     DETECT, RECOGNIZE, VERIFY
@@ -27,7 +31,13 @@ export interface ITrackerProps {
     recognize: any;
     play?: boolean;
     height?: number
-    width?: number
+    width?: number,
+    canCancel?: boolean,
+    classes?: any,
+    dialogContainer?: any,
+    location?: any,
+    open?: boolean,
+    callback?: (result: TrackerResult) => any
 }
 
 
@@ -41,7 +51,7 @@ const MIN_VIDEO_WIDTH: number = 96
  */
 const IDEAL_FRAMERATE = 6
 
-export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
+export class Tracker extends React.PureComponent<ITrackerProps, any>{
 
     private videoEl: HTMLVideoElement;
     private canvasEl: HTMLCanvasElement;
@@ -70,7 +80,6 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
         success: '#5a58', default: '#55a8', fail: '#a558'
     }
 
-
     //TODO:  Make this to parse directory and get faces from that directory
     // TODO:  Save face descriptor alone without pictures.
 
@@ -79,22 +88,41 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
         return this.__getReferenceFaces()
     }
 
+    //*****
     protected async __getReferenceFaces(): Promise<ITrackerReference[]> {
-        let labels: string[] = ['lord'];
-        return Promise.all(labels)
-            .then(async imgx => imgx.map(async img => {
-                let resp = await fetch(`${process.env.PUBLIC_URL}/faces/${img}.png`)
-                return await faceapi.bufferToImage(await resp.blob())
-            }))
-            .then(htmlImgx => htmlImgx.map(async htmlImg => await faceapi.allFaces(await htmlImg, MIN_CONFIDENCE, this.useBatch)[0]))
-            .then(fdx => (fdx.map((fd, i) => Object.create({ descriptor: fd, label: labels[i] }))))
+        return new Promise<ITrackerReference[]>(async (res, rej) => {
+            // let _self = this
+            let db = await getIDB()
+            let tranxn = db.transaction(DOCUMENTS.TRACKER, 'readonly')
+            tranxn.onerror = tranxn.onabort = function () {
+                return rej(this.error)
+            }
+            let store = tranxn.objectStore(DOCUMENTS.TRACKER)
+            store.getAll().onsuccess = function () {
+                if (!this.result || (Array.isArray(this.result) && this.result.length < 1)) {
+                    console.log('Tracker list is empty!')
+                    res([])
+                }
+                let data = this.result as ITrackerState[]
+                console.log(data)
+                return Promise.all(data)
+                    .then(async userx => userx.map(async user => {
+                    }))
+                    // .then(htmlImgx => htmlImgx.map(async htmlImg => await faceapi.allFaces(await htmlImg, MIN_CONFIDENCE, _self.useBatch)[0]))
+                    .then(fdx => (fdx.map((fd, i) => Object.create({ descriptor: fd, label: data[i] }))))
+            }
 
+
+        })
     }
 
-    // constructor(props:ITrackerProps){
-    //     super(props)
-
-    // }
+    constructor(props: ITrackerProps) {
+        super(props)
+        this.state = {
+            cancel: false,
+            success: false
+        }
+    }
 
     componentDidMount() {
         this.timer = Date.now()
@@ -147,16 +175,48 @@ export class Tracker extends React.PureComponent<ITrackerProps, unknown>{
     }
 
     render() {
-        return (
-            <div className="Tracker">
-                <video className={"FineVideo"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
-                    <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
-                </video>
-                <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'absolute', top: 0 }} />
-                {/* <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} /> */}
-                {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
-            </div>
-        )
+        if (this.state.success) {
+            if (this.props.location.state && this.props.location.state.from) {
+                let { from } = this.props.location.state
+                return (<Redirect to={from} />)
+            }
+            return (<Redirect to={{ pathname: '/' }} />)
+        }
+        else if (this.state.cancel) {
+            if (this.props.location.state && this.props.location.state.from) {
+                let { from } = this.props.location.state
+                return (<Redirect to={{ ...from, state: { ...from.state, registrationCancel: true } }} />)
+            }
+            return (<Redirect to={{ pathname: '/', state: { registrationCancel: true } }} />)
+        } else {
+            return (
+                <Dialog className="Tracker"
+                    BackdropProps={{ style: { position: 'absolute' } }} container={this.props.dialogContainer}
+                    // PaperProps={this.state.error ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { maxWidth: '30em', flex: 1 } }}
+                    classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
+                    disableBackdropClick disableEscapeKeyDown
+                    scroll='body' onClose={() => null} open={this.props.open || false}>
+                    <DialogTitle>Center Your Face On The Camera!</DialogTitle>
+                    <DialogContent>
+                        <div className="Tracker">
+                            <video className={"FineVideo"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
+                                <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
+                            </video>
+                            <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'absolute', top: 0 }} />
+                            {/* <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} /> */}
+                            {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
+                        </div>
+                        <DialogActions>
+                            <Button fullWidth
+                                variant={'raised'} color='secondary' hidden={!this.props.canCancel} onClick={() => { this.setState({ cancel: true }); this.videoTrack.stop() }} >
+                                <MdCancel />&emsp; Cancel
+                        </Button>
+                        </DialogActions>
+
+                    </DialogContent>
+                </Dialog >
+            )
+        }
     }
 
     async _onload() {
@@ -350,14 +410,9 @@ export class TrackerResult {
     }
 }
 
-export class TrackerStore {
-    private rootPath: string = `${nw.App.dataPath}/.app/faces`
-    get path(): string {
-        return this.rootPath
-    }
-
-    constructor(root?: string) {
-        this.rootPath = root || this.rootPath
-    }
-
+export interface ITrackerState {
+    id: number
+    uid: string
+    username: string
+    faces: { descriptor: Float32Array }[]
 }

@@ -1,4 +1,8 @@
-export default function setupExpress(express: any, app: any) {
+import * as express from "express";
+
+
+export default function setupExpress() {
+    let app: express.Express = express()
 
     app.use(express.json());
 
@@ -6,7 +10,7 @@ export default function setupExpress(express: any, app: any) {
     //     body = req.body
     //     next()
     // })
-
+    // app.use(express.static('/'))
     app.get('/', (req: any, res: any) => {
         res.status(200).send("<p>lagbaja<p>").end();
     })
@@ -34,4 +38,6 @@ export default function setupExpress(express: any, app: any) {
     })
     app.post('/webhook', (req: any, res: any) => {
     })
+
+    return app
 }
