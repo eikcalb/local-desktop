@@ -15,7 +15,6 @@ import Message from './notification';
 import particlesConfig from './particlesjs-config.json';
 import particlesConfigStop from './particlesjs-config.stop.json';
 import ROUTES from "./routes";
-import santa from './santa.png';
 import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
 import { NOTIFICATION } from './types';
@@ -239,14 +238,13 @@ class App extends React.Component<IProps, unknown> {
               {...ROUTES}
               <Route render={(props) => (
                 <div style={{
-                  flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
-                  backgroundImage: new Date().getMonth() === 11 ? santa : ''
+                  flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
                 }}>
                   <Particles params={this.state.adminDialogOpen || props.history.location.pathname !== '/' ? this.state.particlesParamsStop : this.state.particlesParams}
                     style={{
                       position: 'absolute',
                       top: 0, left: 0,
-                      backgroundColor: new Date().getMonth() === 11 ? "#a44" : 'linear-gradient(rgb(1, 1, 29), 60%, rgb(0, 0, 35), 94%, rgb(2, 2, 19))'
+                      background: new Date().getMonth() === 11 ? "#a44" : 'linear-gradient(rgb(1, 1, 29), 60%, rgb(0, 0, 35), 94%, rgb(2, 2, 19))'
                     }} />
                   <Zoom in>
                     <Paper className="animated fadein" style={{ padding: '3em', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }} >

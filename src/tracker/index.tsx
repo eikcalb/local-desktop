@@ -1,7 +1,7 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@material-ui/core";
 import * as faceapi from "face-api.js";
-import { FullFaceDescription } from "face-api.js";
-import { MtcnnResult } from "face-api.js/build/commonjs/mtcnn/types";
+import { FullFaceDescription, MtcnnOptions } from "face-api.js";
+import { MtcnnResult } from "face-api.js";
 import * as React from "react";
 import { MdCancel } from "react-icons/md";
 import { connect } from "react-redux";
@@ -222,8 +222,8 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             video: {
                 aspectRatio: 1,
                 frameRate: { ideal: IDEAL_FRAMERATE, max: 10, min: 2 },
-                height: { ideal: this.videoEl.clientHeight, min: MIN_VIDEO_HEIGHT * 4 },
-                width: { ideal: this.videoEl.clientWidth, min: MIN_VIDEO_WIDTH * 4 }
+                height: { ideal: this.videoEl.clientHeight || MIN_VIDEO_HEIGHT * 9, min: MIN_VIDEO_HEIGHT * 4 },
+                width: { ideal: this.videoEl.clientWidth || MIN_VIDEO_WIDTH * 9, min: MIN_VIDEO_WIDTH * 4 }
             }
         })
             .then(
@@ -289,7 +289,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     private async detectFaces(input: TrackerInputType, oneShot: boolean = true, show: boolean = true, useBatch?: boolean) {
         console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
 
-        let fullFaceDescriptors = await faceapi.mtcnn(input, { minFaceSize: 200, maxNumScales: 10 });//await faceapi.nets.mtcnn.forward(input, { minFaceSize: 200 })
+        let fullFaceDescriptors = await faceapi.mtcnn(input, new MtcnnOptions({ minFaceSize: 200, maxNumScales: 10 }));//await faceapi.nets.mtcnn.forward(input, { minFaceSize: 200 })
         if (fullFaceDescriptors.length > 0) {
             fullFaceDescriptors = fullFaceDescriptors.filter(res => {
                 if (res.faceDetection.score < MIN_CONFIDENCE) {
@@ -353,7 +353,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
 
     private async recognizeFaces(input: TrackerInputType, oneShot: boolean = true, show: boolean = true) {
         //TODO:  Allow user select face incase of multiple faces
-        let fullFaceDescriptors = await faceapi.mtcnn(input, { minFaceSize: 200, maxNumScales: 10 });
+        let fullFaceDescriptors = await faceapi.mtcnn(input, new MtcnnOptions({ minFaceSize: 200, maxNumScales: 10 }));
         if (fullFaceDescriptors.length > 0) {
             fullFaceDescriptors = fullFaceDescriptors.filter(res => {
                 if (res.faceDetection.score < MIN_CONFIDENCE) {

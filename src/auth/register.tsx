@@ -64,75 +64,76 @@ export class Register extends React.Component<IRegisterProps, any>{
             }
             return (<Redirect to={{ pathname: '/', state: { registrationCancel: true } }} />)
         } else return (
-            this.state.showTracker ? (
+            <div>
+                {/* // this.state.showTracker ? ( */}
                 <Tracker classes={this.props.classes} open={this.state.showTracker} dialogContainer={this.props.dialogContainer}
-                    track={Target.DETECT}
+                    track={Target.RECOGNIZE}
                     notify={m => null} callback={(param) => {
                         let trackerDone = param.success
                         this.setState({ trackerDone, showTracker: false, trackerData: param })
                     }} />
-            ) : (
-                    <Dialog className="Register"
-                        BackdropProps={{ style: { position: 'absolute' } }} container={this.props.dialogContainer}
-                        PaperProps={this.state.error ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { maxWidth: '30em', flex: 1 } }}
-                        classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
-                        disableBackdropClick disableEscapeKeyDown
-                        scroll='body' onClose={() => null} open={!this.state.showTracker}>
-                        <DialogTitle>Enter Login Details
+                {/* // ) : ( */}
+                <Dialog className="Register"
+                    BackdropProps={{ style: { position: 'absolute' } }} container={this.props.dialogContainer}
+                    PaperProps={this.state.error ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { maxWidth: '30em', flex: 1 } }}
+                    classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
+                    disableBackdropClick disableEscapeKeyDown
+                    scroll='body' onClose={() => null} open={!this.state.showTracker}>
+                    <DialogTitle>Enter Login Details
                     <IconButton style={{ position: 'absolute', top: 3, right: 0 }} hidden={!this.props.canCancel} onClick={() => { this.setState({ cancel: true }) }} >
-                                <MdCancel fill='#f00' />
-                            </IconButton></DialogTitle>
-                        <DialogContent>
-                            <Typography variant='caption' color='error' hidden={!this.state.error && !this.state.errorText} paragraph >
-                                {this.state.errorText}
-                            </Typography>
-                            <TextField autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ username: value, error: !value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Username' type='text' name='username' />
-                            <TextField autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ email: value, error: !value }) }} required fullWidth variant='outlined' margin='normal' label='Enter Email' type='email' name='email' />
+                            <MdCancel fill='#f00' />
+                        </IconButton></DialogTitle>
+                    <DialogContent>
+                        <Typography variant='caption' color='error' hidden={!this.state.error && !this.state.errorText} paragraph >
+                            {this.state.errorText}
+                        </Typography>
+                        <TextField value={this.state.username} autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ username: value, error: !value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Username' type='text' name='username' />
+                        <TextField value={this.state.email} autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ email: value, error: !value }) }} required fullWidth variant='outlined' margin='normal' label='Enter Email' type='email' name='email' />
 
-                            <TextField autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => {
-                                this.setState(
-                                    { password: value, error: !value })
-                            }} helperText={'Password should be at least 8 characters long!'} required fullWidth variant='outlined' margin='normal' label='Enter Password' type='password' name='password' />
+                        <TextField value={this.state.password} autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => {
+                            this.setState(
+                                { password: value, error: !value })
+                        }} helperText={'Password should be at least 8 characters long!'} required fullWidth variant='outlined' margin='normal' label='Enter Password' type='password' name='password' />
 
-                            <TextField autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => {
-                                this.setState(
-                                    { passwordVerify: value, error: !value })
-                            }} helperText={'Should be the same as password!'} required fullWidth variant='outlined' margin='normal' label='Verify Password' type='password' name='passwordVerify' />
+                        <TextField value={this.state.passwordVerify} autoComplete={'false'} error={this.state.error} onChange={({ target: { value } }) => {
+                            this.setState(
+                                { passwordVerify: value, error: !value })
+                        }} helperText={'Should be the same as password!'} required fullWidth variant='outlined' margin='normal' label='Verify Password' type='password' name='passwordVerify' />
 
-                            <Button fullWidth style={{ marginBottom: '1.2em' }} disabled={this.state.trackerDone} variant='raised' color='default'
-                                onClick={() => this.setState({ showTracker: true })} >
-                                Start Facial Recognition!
+                        <Button fullWidth style={{ marginBottom: '1.2em' }} disabled={this.state.trackerDone} variant='raised' color='default'
+                            onClick={() => this.setState({ showTracker: true })} >
+                            Start Facial Recognition!
                         </Button>
-                            <DialogActions>
-                                <Button fullWidth disabled={this.state.error || this.state.loading || !this.state.trackerDone}
-                                    variant={'raised'} color='primary'
-                                    onClick={async () => {
-                                        let { password, passwordVerify, email, username, trackerData } = this.state
-                                        if (password !== '' && password.trim() !== '' && password.length >= 8 && password === passwordVerify && !this.state.loading && EMAIL_REGEX.test(email) && username && this.state.trackerDone && trackerData) {
-                                            this.setState({ loading: true })
-                                            let user: any
-                                            try {
-                                                if (this.props.auth && (user = await this.props.auth.registerSuperUser(username, email, password, trackerData))) {
-                                                    if (this.props.registerCallback) {
-                                                        this.props.registerCallback(user)
-                                                    }
-                                                    this.setState({ loading: false, registrationSuccess: true })
-                                                    return
+                        <DialogActions>
+                            <Button fullWidth disabled={this.state.error || this.state.loading || !this.state.trackerDone}
+                                variant={'raised'} color='primary'
+                                onClick={async () => {
+                                    let { password, passwordVerify, email, username, trackerData } = this.state
+                                    if (password !== '' && password.trim() !== '' && password.length >= 8 && password === passwordVerify && !this.state.loading && EMAIL_REGEX.test(email) && username && this.state.trackerDone && trackerData) {
+                                        this.setState({ loading: true })
+                                        let user: any
+                                        try {
+                                            if (this.props.auth && (user = await this.props.auth.registerSuperUser(username, email, password, trackerData))) {
+                                                if (this.props.registerCallback) {
+                                                    this.props.registerCallback(user)
                                                 }
-                                            } catch (e) {
-                                                this.setState({ error: true, loading: false, errorText: e.message || e.target.error.message })
-                                                console.log(e)
+                                                this.setState({ loading: false, registrationSuccess: true })
+                                                return
                                             }
+                                        } catch (e) {
+                                            this.setState({ error: true, loading: false, errorText: e.message || e.target.error.message })
+                                            console.log(e)
                                         }
-                                        this.setState({ error: true, loading: false, errorText: 'Ensure that you have provided the required values!' })
-                                    }}>
-                                    Login
+                                    }
+                                    this.setState({ error: true, loading: false, errorText: 'Ensure that you have provided the required values!' })
+                                }}>
+                                Login
                                 </Button>
-                            </DialogActions>
-                        </DialogContent>
-                    </Dialog >
-                )
-
+                        </DialogActions>
+                    </DialogContent>
+                </Dialog >
+                {/* ) */}
+            </div>
         )
     }
 }
