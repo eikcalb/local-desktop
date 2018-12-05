@@ -14,7 +14,7 @@ import Register from './auth/register';
 import Message from './notification';
 import particlesConfig from './particlesjs-config.json';
 import particlesConfigStop from './particlesjs-config.stop.json';
-import ROUTES from "./routes";
+import ROUTES, { Links } from "./routes";
 import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
 import { NOTIFICATION } from './types';
@@ -252,7 +252,7 @@ class App extends React.Component<IProps, unknown> {
                       <Typography className="App-title" variant='h6'>Welcome to Local for Enterprise!</Typography>
                       <Button style={{ margin: 8, alignItems: 'center' }} size='small'
                         //@ts-ignore
-                        component={({ ...props }) => <Link replace {...props} to={'/login'} />} variant='contained' fullWidth color={'primary'} >
+                        component={({ ...props }) => <Link replace {...props} to={{ pathname: '/login', state: { to: { pathname: Links.HOME } } }} />} variant='contained' fullWidth color={'primary'} >
                         <Icon><MdLock /></Icon>&emsp; Login
                         </Button>
                       <Button style={{ margin: 8, alignItems: 'center' }} size='small'

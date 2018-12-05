@@ -20,8 +20,8 @@ if (isWorker) {
             worker.send(m)
         })
         worker.send("Hello From Worker " + worker.id)
-        const useHttp = (process.env.serverMask || HTTP_SERVER & ALL_SERVERS) === HTTP_SERVER
-        const useWebSocket = (process.env.serverMask || WEBSOCKET_SERVER & ALL_SERVERS) === WEBSOCKET_SERVER
+        const useHttp = (Number(process.env.serverMask) & HTTP_SERVER) === HTTP_SERVER
+        const useWebSocket = (Number(process.env.serverMask) & WEBSOCKET_SERVER) === WEBSOCKET_SERVER
         let server: HttpServer | null = null
         if (useHttp) {
             server = createServer(setupExpress())

@@ -5,11 +5,12 @@ import { Redirect } from "react-router";
 import { Dispatch } from "redux";
 import Auth from ".";
 import ILocalStore from "../store";
-import { LOGIN } from "../types";
+import { LOGIN, NOTIFICATION } from "../types";
 import User from "../types/User";
 import { MdCancel } from "react-icons/md";
 import { Tracker, Target } from "src/tracker";
 import SuperUser from "src/types/SuperUser";
+import Message from "src/notification";
 
 export interface ILoginProps {
     auth: Auth,
@@ -18,6 +19,7 @@ export interface ILoginProps {
     history?: any,
     match?: any,
     location?: any,
+    notify?: any,
     dialogContainer?: React.ReactInstance,
     loginCallback?: (user: User) => any
 }
@@ -43,9 +45,9 @@ export class Login extends React.Component<ILoginProps, any>{
 
     render() {
         if (this.state.loginSuccess && this.state.trackerDone) {
-            if (this.props.location.state && this.props.location.state.from) {
-                let { from } = this.props.location.state
-                return (<Redirect to={from} />)
+            if (this.props.location.state && this.props.location.state.to) {
+                let { to } = this.props.location.state
+                return (<Redirect to={to} />)
             }
             return (<Redirect to={{ pathname: '/' }} />)
         } else if (this.state.cancel) {
@@ -65,6 +67,7 @@ export class Login extends React.Component<ILoginProps, any>{
                                 if (success && this.props.loginCallback) {
                                     this.props.loginCallback(this.user)
                                 }
+                                if (success && this.props.notify) this.props.notify(`${this.state.username} logged in successfully!`, 'Login Success!')
                                 this.setState({
                                     trackerDone: success,
                                     showTracker: false,
@@ -99,8 +102,8 @@ export class Login extends React.Component<ILoginProps, any>{
                                 <Typography variant='caption' color='error' hidden={!this.state.error && !this.state.errorText} paragraph >
                                     {this.state.errorText}
                                 </Typography>
-                                <TextField autoComplete='off' inputProps={{ autoFocus: true }} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ username: value, error: !value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Username' type='text' name='username' />
-                                <TextField autoComplete='off' error={this.state.error} onChange={({ target: { value } }) => {
+                                <TextField value={this.state.username} autoComplete='off' inputProps={{ autoFocus: true }} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ username: value, error: !value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Username' type='text' name='username' />
+                                <TextField value={this.state.password} autoComplete='off' error={this.state.error} onChange={({ target: { value } }) => {
                                     this.setState(
                                         { password: value, error: !value })
                                 }} helperText={'Password should be at least 8 characters long!'} required fullWidth variant='outlined' margin='normal' label='Enter Password' type='password' name='password' />
@@ -144,6 +147,9 @@ export default connect((state: ILocalStore, ownProps: any) => {
     return {
         loginCallback: (user: User) => {
             dispatch({ type: LOGIN, body: user })
+        },
+        notify: (message: string, title?: string) => {
+            dispatch({ type: NOTIFICATION, body: new Message(message, title) })
         }
     }
 })(Login)

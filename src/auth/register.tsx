@@ -111,8 +111,11 @@ export class Register extends React.Component<IRegisterProps, any>{
                                 <Button fullWidth style={{ marginBottom: '1.2em' }} variant='raised' color='default'
                                     onClick={() => this.setState({ showTracker: true })} >
                                     {this.state.trackerDone ? (
-                                        "Face Captured!<small>Click to try again</small>"
+                                        "Face Captured!"
                                     ) : "Start Facial Recognition!"}
+                                    {this.state.trackerDone ? (
+                                        <small>(Click to try again)</small>
+                                    ) : null}
                                 </Button>
 
                                 <DialogActions>

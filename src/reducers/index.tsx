@@ -10,8 +10,11 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
     let newState = Object.assign({}, state)
     switch (action.type) {
         case TYPES.LOGIN:
-        case TYPES.REGISTER:
             newState.user = action.body
+            newState.windowState.showAppBar=true
+            newState.windowState.canToggleAppBar=true
+            break
+        case TYPES.REGISTER:
             break
         case TYPES.CLOSE_APPLICATION_WINDOW:
             newState.windowState.closed = action.body

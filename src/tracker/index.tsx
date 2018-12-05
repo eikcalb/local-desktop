@@ -158,6 +158,13 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         }
     }
 
+    cancel(reason?: string) {
+        this.props.callback(
+            new TrackerResult(false, { message: reason || "User cancelled facial recognition request!" })
+        );
+        return null
+    }
+
     getSnapshotBeforeUpdate(prevProps: ITrackerProps, PrevState: unknown): any {
         return this.props.play
     }
@@ -349,7 +356,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                             let rBox = res.faceDetection.relativeBox
                             let { clientWidth, clientHeight } = this.canvasEl
                             let lMarks = res.faceLandmarks.getMouth()
-                            let rightPoint: Point = lMarks[0], leftPoint: Point = lMarks[lMarks.length - 1]
+                            let leftPoint: Point = lMarks[0], rightPoint: Point = lMarks[lMarks.length - 1]
                             let verticalDisplacement = leftPoint.y - rightPoint.y
                             drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
                                 (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
@@ -366,7 +373,9 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             }, faceData)//.sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
             if (result.length > 0) {
                 return result
-            } else return null
+            } else {
+                if (oneShot) return this.cancel("User face does not match!"); else return null
+            }
         }
         return null
     }

@@ -22,6 +22,10 @@ if not !ERRORLEVEL!==0 (
 )
 :build
 call yarn build && tsc -p "./build"
+if not !ERRORLEVEL!==0 (
+    echo An error occurred while building application
+    goto :END
+)
 if "%SHOULD_START%"=="1" (
   goto :start
 )
