@@ -169,21 +169,22 @@ a{
   position: relative;
   display: flex;
   justify-content: center;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
 }
 
 .FineVideo{
-  filter: brightness(0.7) contrast(1.82) saturate(1);
+  filter: brightness(1.2) contrast(1.82) saturate(1);
   transform-box: border-box;
   transform: rotateY(180deg);
 }
 
 .FineVideo.NoColor{
-  filter: brightness(0.7) contrast(1.82) saturate(0)
+  filter: brightness(1.2) contrast(1.82) saturate(0)
 }
 
 .FineVideo.Gray{
-  filter: brightness(0.7) contrast(1.82) grayscale(1)
+  filter: brightness(1.2) contrast(1.82) grayscale(1)
 }
 
 .FineVideo ~ canvas{

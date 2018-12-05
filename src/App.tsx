@@ -39,7 +39,7 @@ const theme = createMuiTheme({
   typography: { allVariants: { textAlign: 'center' } },
   props: {
     MuiInput: {
-      autoComplete: 'false'
+      autoComplete: 'off'// invalid value here will disable autocomplete
     }
   }
 })

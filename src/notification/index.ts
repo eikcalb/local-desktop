@@ -24,4 +24,8 @@ export default class Message implements IMessage {
         this.message = message;
         if (title) this.title = title
     }
+
+    toString() {
+        return new String().concat(this.title ? `${this.title.bold()}: ` : '', this.message)
+    }
 }

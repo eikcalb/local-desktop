@@ -1,7 +1,6 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@material-ui/core";
 import * as faceapi from "face-api.js";
-import { FullFaceDescription, MtcnnOptions } from "face-api.js";
-import { MtcnnResult } from "face-api.js";
+import { FaceMatcher, FullFaceDescription, LabeledFaceDescriptors, Point, TinyFaceDetectorOptions } from "face-api.js";
 import * as React from "react";
 import { MdCancel } from "react-icons/md";
 import { connect } from "react-redux";
@@ -18,11 +17,6 @@ export enum Target {
 
 export type TrackerInputType = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement
 
-interface ITrackerReference {
-    label: string
-    descriptor: Float32Array
-}
-
 export interface ITrackerProps {
     track: Target;
     notify: (message: IMessage) => any;
@@ -34,6 +28,7 @@ export interface ITrackerProps {
     dialogContainer?: any,
     location?: any,
     open: boolean,
+    expectedUsername?: string,
     callback: (result: TrackerResult) => any
 }
 
@@ -55,8 +50,9 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     private mediaStream: MediaStream;
     private videoTrack: MediaStreamTrack
     // private useBatch: boolean = true;
-    public fullFaceDescriptors: FullFaceDescription[] | MtcnnResult[] | {}[];
+    public fullFaceDescriptors: FullFaceDescription[]
     private _isRunning: boolean
+    protected _cachedReferences: LabeledFaceDescriptors[]
     get running(): boolean {
         return this._isRunning
     }
@@ -81,13 +77,13 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     // TODO:  Save face descriptor alone without pictures.
 
     // { [key: string]: Float32Array | any }[]
-    get referenceFaces(): Promise<ITrackerReference[]> {
+    get referenceFaces(): Promise<LabeledFaceDescriptors[]> {
         return this.__getReferenceFaces()
     }
 
     //*****
-    protected async __getReferenceFaces(): Promise<ITrackerReference[]> {
-        return new Promise<ITrackerReference[]>(async (res, rej) => {
+    protected async __getReferenceFaces(): Promise<LabeledFaceDescriptors[]> {
+        return this._cachedReferences ? this._cachedReferences : new Promise<LabeledFaceDescriptors[]>(async (res, rej) => {
             // let _self = this
             let db = await getIDB()
             let tranxn = db.transaction(DOCUMENTS.TRACKER, 'readonly')
@@ -95,21 +91,27 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 return rej(this.error)
             }
             let store = tranxn.objectStore(DOCUMENTS.TRACKER)
-            store.getAll().onsuccess = function () {
+            store.getAll().onsuccess = async function () {
                 if (!this.result || (Array.isArray(this.result) && this.result.length < 1)) {
                     console.log('Tracker list is empty!')
-                    res([])
+                    return res([])
                 }
                 let data = this.result as ITrackerState[]
-                console.log(data)
-                return Promise.all(data)
-                    .then(async userx => userx.map(async user => {
-                    }))
-                    // .then(htmlImgx => htmlImgx.map(async htmlImg => await faceapi.allFaces(await htmlImg, MIN_CONFIDENCE, _self.useBatch)[0]))
-                    .then(fdx => (fdx.map((fd, i) => Object.create({ descriptor: fd, label: data[i] }))))
+                console.log("Stored face data", data)
+
+                let lfdx = await Promise.all(data).then(userx => userx.map(user => {
+                    return new LabeledFaceDescriptors(user.username, user.faces)
+                }))
+                res(await lfdx)
+                // .then(htmlImgx => htmlImgx.map(async htmlImg => await faceapi.allFaces(await htmlImg, MIN_CONFIDENCE, _self.useBatch)[0]))
+                // .then(fdx => (fdx.map((fd, i) => Object.create({ descriptor: fd, label: data[i] }))))
             }
 
 
+        }).then(val => {
+            this._cachedReferences = val
+            console.log("labeled face descriptors", val)
+            return val
         })
     }
 
@@ -119,11 +121,18 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             cancel: false,
             success: false
         }
+        // prepare models for future work
+        Promise.all([
+            faceapi.loadMtcnnModel(MODELS),
+            faceapi.loadTinyFaceDetectorModel(MODELS),
+            faceapi.loadFaceLandmarkTinyModel(MODELS),
+            faceapi.loadFaceRecognitionModel(MODELS)
+        ])
     }
 
     componentDidMount() {
         this.timer = Date.now()
-        this._onload();
+        this._onload()
     }
 
     componentWillUnmount() {
@@ -188,8 +197,8 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                         <video className={"FineVideo"} width={this.props.videoWidth || (MIN_VIDEO_WIDTH * 6)} height={this.props.videoHeight || (MIN_VIDEO_HEIGHT * 8)}
                             id='v' poster={logo} onPause={() => this.running = false}
                             onPlaying={() => this.running = true} onPlay={() => { this.run() }}
-                            autoPlay
-                            controls={true} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }}
+                            autoPlay src="data:video/ogg,null"
+                            controls={false} ref={(el) => { if (el) { this.videoEl = el } }}
                             style={{ objectFit: 'fill', zIndex: 1 }}>
                             <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
                         </video>
@@ -199,7 +208,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                     </div>
                     <DialogActions>
                         <Button fullWidth
-                            variant={'raised'} color='secondary' hidden={!this.props.canCancel} onClick={() => { return this.props.callback(new TrackerResult(false, { message: "User cancelled request!" })); }} >
+                            variant={'raised'} color='secondary' hidden={!this.props.canCancel} onClick={() => { return this.props.callback(new TrackerResult(false, { message: "User cancelled facial recognition request!" })); }} >
                             <MdCancel />&emsp; Cancel
                         </Button>
                     </DialogActions>
@@ -209,21 +218,19 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         )
     }
 
+    /**
+     * Normally, this would be called on video element load event.
+     * Since this is a react c=application, prefer calling this in the component did mount event instead
+     */
     async _onload() {
-        // prepare models for future work
-        await faceapi.loadMtcnnModel(MODELS);
-        // await faceapi.loadFaceDetectionModel(MODELS)
-        await faceapi.loadFaceRecognitionModel(MODELS)
-
         console.log(this.videoEl, this.mediaStream);
         window.onmessage = (message) => { console.log(message); this.videoEl.pause() }
-
         navigator.mediaDevices.getUserMedia({
             video: {
                 aspectRatio: 1,
                 frameRate: { ideal: IDEAL_FRAMERATE, max: 10, min: 2 },
-                height: { ideal: this.videoEl.clientHeight || MIN_VIDEO_HEIGHT * 9, min: MIN_VIDEO_HEIGHT * 4 },
-                width: { ideal: this.videoEl.clientWidth || MIN_VIDEO_WIDTH * 9, min: MIN_VIDEO_WIDTH * 4 }
+                height: { ideal: this.videoEl ? this.videoEl.clientHeight : MIN_VIDEO_HEIGHT * 9, min: MIN_VIDEO_HEIGHT * 4 },
+                width: { ideal: this.videoEl ? this.videoEl.clientWidth : MIN_VIDEO_WIDTH * 9, min: MIN_VIDEO_WIDTH * 4 }
             }
         })
             .then(
@@ -247,17 +254,24 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             switch (this.props.track) {
                 case Target.DETECT:
                     // this.videoEl.pause()
-                    this.fullFaceDescriptors = await this.detectFaces(this.videoEl, true) || []
-                    if (this.fullFaceDescriptors.length > 0) {
-                        this.props.callback(new TrackerResult(true, { faces: this.fullFaceDescriptors, message: "Detected faces!" }))
+                    // this.fullFaceDescriptors = await this.detectFaces(this.videoEl, true) || []
+                    // if (this.fullFaceDescriptors.length > 0) {
+                    //     this.props.callback(new TrackerResult(true, { faces: this.fullFaceDescriptors, message: "Detected faces!" }))
+                    // }
+                    let face = await this.detectFaces(this.videoEl, true)
+                    if (face) {
+                        this.props.callback(new TrackerResult(true, { ...face, message: 'Face captured successfully!' }))
                     }
+                    break
                     break;
                 case Target.RECOGNIZE:
-                    let faceData = await this.recognizeFaces(this.videoEl, true)
+                    let matcher = new FaceMatcher(await this.referenceFaces)
+
+                    let faceData = await this.recognizeFaces(this.videoEl, matcher, true)
+                    console.log(faceData)
                     if (faceData) {
-                        this.props.callback(new TrackerResult(true, { ...faceData, message: 'Face saved!' }))
+                        this.props.callback(new TrackerResult(true, faceData, 'Face captured successfully!'))
                     }
-                    this.videoEl.pause()
                     break;
             }
         } catch (e) {
@@ -270,6 +284,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         console.log(this.videoEl);
 
         if (!this.videoEl) {
+            this.mediaStream.stop()
             return Promise.reject(new Error("No video element referenced!"));
         }
 
@@ -287,121 +302,102 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
      * @param input Source stream to recogize from 
      */
     private async detectFaces(input: TrackerInputType, oneShot: boolean = true, show: boolean = true, useBatch?: boolean) {
-        console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
-
-        let fullFaceDescriptors = await faceapi.mtcnn(input, new MtcnnOptions({ minFaceSize: 200, maxNumScales: 10 }));//await faceapi.nets.mtcnn.forward(input, { minFaceSize: 200 })
-        if (fullFaceDescriptors.length > 0) {
-            fullFaceDescriptors = fullFaceDescriptors.filter(res => {
-                if (res.faceDetection.score < MIN_CONFIDENCE) {
-                    return false
-                }
-                if (show) {
-
-                    if (this.ctx) {
-                        this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
-                        if (res.faceDetection) {
-                            let rBox = res.faceDetection.getRelativeBox()
-                            let { clientWidth, clientHeight } = this.canvasEl
-                            let lMarks = res.faceLandmarks.getPositions()
-                            let verticalDisplacement = lMarks[4].y - lMarks[3].y
-                            drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
-                                (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
-                                { strokeColor: this.boxColor.default, padding: 3 },
-                                Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (lMarks[4].x - lMarks[3].x)) : 0)
-                            if (oneShot) this.videoEl.pause()
-                        }
-                    }
-                }
-                console.log(res)
-                return true
-            }).sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
-
-            // console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, res.detection.imageHeight, res.detection.getBox());
-
-            // if (res.faceDetection) {
-            //     let rBox = res.faceDetection.getRelativeBox()
-            //     let { clientWidth, clientHeight } = this.canvasEl
-            //     faceapi.drawBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y), (clientWidth * rBox.width), (clientHeight * rBox.height), { ...faceapi.getDefaultDrawOptions(), withScore: false, boxColor: this.boxColor.default })
-            //     // faceapi.drawDetection(this.canvasEl, res.faceDetection.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight), { withScore: false, boxColor: this.boxColor.default })
-            //     this.videoEl.pause()
-            // }
-
-            return fullFaceDescriptors;
-        }
-        // return fullFaceDescriptors
-
-        /*
-                let fullFaceDescriptors = await faceapi.allFacesMtcnn(input, { minFaceSize: 180, maxNumScales: 3 }, useBatch || this.useBatch);
-        
-                if (show) {
-                    fullFaceDescriptors.forEach(fd => {
-                        fd = fd.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight)
-                        if (this.ctx) {
-                            this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
-                        }
-                        console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, fd.detection.imageHeight, fd.detection.getBox());
-        
-                        if (fd.detection) {
-                            faceapi.drawDetection(this.canvasEl, fd.detection, { withScore: false, boxColor: this.boxColor.default })
-                        }
-                        console.log(fd)
-                    })
-                }
-                */
-        return
-    }
-
-    private async recognizeFaces(input: TrackerInputType, oneShot: boolean = true, show: boolean = true) {
         //TODO:  Allow user select face incase of multiple faces
-        let fullFaceDescriptors = await faceapi.mtcnn(input, new MtcnnOptions({ minFaceSize: 200, maxNumScales: 10 }));
-        if (fullFaceDescriptors.length > 0) {
-            fullFaceDescriptors = fullFaceDescriptors.filter(res => {
-                if (res.faceDetection.score < MIN_CONFIDENCE) {
-                    return false
-                }
-                if (show) {
-
-                    if (this.ctx) {
-                        this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
-                        if (res.faceDetection) {
-                            let rBox = res.faceDetection.getRelativeBox()
-                            let { clientWidth, clientHeight } = this.canvasEl
-                            let lMarks = res.faceLandmarks.getPositions()
-                            let verticalDisplacement = lMarks[4].y - lMarks[3].y
-                            drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
-                                (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
-                                { strokeColor: this.boxColor.default, padding: 3 },
-                                Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (lMarks[4].x - lMarks[3].x)) : 0)
-                            if (oneShot) this.videoEl.pause()
-                        }
+        // This has been updated to use high level api
+        let res = await faceapi.detectSingleFace(input, new TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: MIN_CONFIDENCE })).withFaceLandmarks(true).withFaceDescriptor();
+        if (res) {
+            if (show) {
+                if (this.ctx) {
+                    this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
+                    if (res.faceDetection) {
+                        let rBox = res.faceDetection.relativeBox
+                        let { clientWidth, clientHeight } = this.canvasEl
+                        let lMarks = res.faceLandmarks.getMouth()
+                        let rightPoint: Point = lMarks[0], leftPoint: Point = lMarks[lMarks.length - 1]
+                        let verticalDisplacement = leftPoint.y - rightPoint.y
+                        drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
+                            (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
+                            { strokeColor: this.boxColor.default, padding: 3 },
+                            Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (leftPoint.x - rightPoint.x)) : 0)
+                        if (oneShot) this.videoEl.pause()
                     }
                 }
-                console.log(res)
-                return true
-            }).sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
-
-            let image = getImageFromMedia(input)
-            return { face: fullFaceDescriptors[0], image }
+            }
+            console.log(res)
+            let faceCanvases = await faceapi.extractFaces(input, [res.faceDetection])
+            console.log(faceCanvases)
+            let image = getImageFromMedia(faceCanvases[0])
+            return { face: res, image }
         }
         return null
     }
 
-    public async verify(fdx: any[]) {
-        return fdx.map(async fd => {
-            const ref = await this.referenceFaces
-            let match = ref.map(({ descriptor, label }) => ({
-                label, distance: faceapi.euclideanDistance(fd.descriptor, descriptor)
-            })
-            ).sort((a, b) => a.distance - b.distance)
-            console.log(match);
-            let bestMatch = match[0]
+    private async recognizeFaces(input: TrackerInputType, matcher: FaceMatcher, oneShot: boolean = true, show: boolean = true): Promise<IFaceData[] | null> {
+        console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
 
-            return {
-                detection: fd.detection,
-                label: bestMatch.label,
-                distance: bestMatch.distance
-            }
+        let fullFaceDescriptors = await faceapi.detectAllFaces(input, new TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: MIN_CONFIDENCE })).withFaceLandmarks(true).withFaceDescriptors();
+        let faceData: IFaceData[] = new Array()
+        if (fullFaceDescriptors.length > 0) {
+            let result = fullFaceDescriptors.reduce((prev, res) => {
+                if (res.faceDetection.score < MIN_CONFIDENCE) {
+                    return prev
+                }
+                if (show) {
+                    if (this.ctx) {
+                        this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
+                        if (res.faceDetection) {
+                            let rBox = res.faceDetection.relativeBox
+                            let { clientWidth, clientHeight } = this.canvasEl
+                            let lMarks = res.faceLandmarks.getMouth()
+                            let rightPoint: Point = lMarks[0], leftPoint: Point = lMarks[lMarks.length - 1]
+                            let verticalDisplacement = leftPoint.y - rightPoint.y
+                            drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
+                                (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
+                                { strokeColor: this.boxColor.default, padding: 3 },
+                                Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (leftPoint.x - rightPoint.x)) : 0)
+                            if (oneShot) this.videoEl.pause()
+                        }
+                    }
+                }
+                console.log(res)
+                let verified = this._verify(res, matcher)
+                if (verified.label && verified.label === this.props.expectedUsername) prev.push({ ...verified, face: res })
+                return prev
+            }, faceData)//.sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
+            if (result.length > 0) {
+                return result
+            } else return null
+        }
+        return null
+    }
+
+    /**
+     * 
+     * @param fdx FullFaceDescriptors of faces to verify.
+     * 
+     * @returns Promise<{label}> The label is the uid of the reference face matched
+     */
+    public async verify(fdx: FullFaceDescription[], faceMatcher?: FaceMatcher): Promise<IFaceData[]> {
+        let matcher = faceMatcher || new FaceMatcher(await this.referenceFaces)
+        return fdx.map(fd => {
+            let faceMatch = this._verify(fd, matcher)
+            console.log(faceMatch);
+            return { ...faceMatch, face: fd }
         })
+    }
+
+    protected _verify(fd: FullFaceDescription, matcher: FaceMatcher): { label: string } {
+        let faceMatch = matcher.findBestMatch(fd.descriptor)
+        // let match = ref.map(({ descriptor, label }) => ({
+        //     label, distance: faceapi.euclideanDistance(fd.descriptor, descriptor)
+        // })
+        // ).sort((a, b) => a.distance - b.distance)
+        // return {
+        //     detection: fd.detection,
+        //     label: bestMatch.label,
+        //     distance: bestMatch.distance
+        // }
+        return { label: faceMatch.label }
     }
 
 }
@@ -416,27 +412,37 @@ export default connect(null, (dispatch: Dispatch, ownprops: ITrackerProps) => {
     }
 })(Tracker);
 
-interface IFaceData {
+export interface IFaceData {
     image?: any,
-    face?: MtcnnResult | FullFaceDescription | {},
+    face?: FullFaceDescription,
     message?: string | Message,
-    faces?: MtcnnResult[] | FullFaceDescription[] | {}[]
-
+    faces?: FullFaceDescription[],
+    label?: string
 }
 
 export class TrackerResult {
     public success: boolean;
     public data: IFaceData[] | IFaceData | undefined;
+    public message: string
 
-    constructor(success: boolean, data?: IFaceData | IFaceData[]) {
+    constructor(success: boolean, data?: IFaceData | IFaceData[], message?: string) {
         this.success = success;
         this.data = data;
+        if (data && !message) {
+            if (Array.isArray(data)) {
+                this.message = data.reduce((prev, cur) => prev + cur.message, '')
+            } else if (data.message) this.message = data.message.toString()
+        }
+        if (message) this.message = message
     }
 }
 
 export interface ITrackerState {
-    id: number
-    uid: string
+    id?: number
+    uid: number
+    /**
+     * This will become the label used for matching faces @var FullFaceDescription
+     */
     username: string
-    faces: { descriptor: Float32Array }[]
+    faces: Float32Array[]
 }

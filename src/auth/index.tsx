@@ -4,10 +4,10 @@ import * as jwt from "jsonwebtoken";
 import * as React from "react";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import { db, getIDB, DOCUMENTS } from "../store";
 import { appPath } from "../startup";
+import { db, DOCUMENTS, getIDB } from "../store";
+import { IFaceData, ITrackerState } from "../tracker";
 import SuperUser from "../types/SuperUser";
-import { ITrackerState } from "../tracker";
 const crypto = window.require('crypto')
 const fs = window.require('fs')
 const { join } = window.require('path')
@@ -68,7 +68,7 @@ export default class Auth {
         })
     }
 
-    public registerSuperUser(username: string, email: string, pass: string, trackerData: ITrackerState): Promise<SuperUser> {
+    public registerSuperUser(username: string, email: string, pass: string, trackerData: IFaceData): Promise<SuperUser> {
         let auth = this
         return new Promise((res, rej) => {
             getIDB(true).then(db => {
@@ -97,7 +97,14 @@ export default class Auth {
                                 //TODO:     Generate new predictible password for encryption
                                 delete user.password
                                 let store = tranx.objectStore(DOCUMENTS.TRACKER)
-                                store.put(trackerData).addEventListener('success', async function () {
+                                let trackerStoreData: ITrackerState = {
+                                    faces: [],
+                                    uid: user.id,
+                                    username: user.username
+                                }
+                                if (trackerData.faces) trackerStoreData.faces.push(...trackerData.faces.map(d => d.descriptor))
+                                if (trackerData.face) trackerStoreData.faces.push(trackerData.face.descriptor)
+                                store.put(trackerStoreData).addEventListener('success', async function () {
                                     if (this.result) {
                                         console.log(this.result)
                                         //TODO:   

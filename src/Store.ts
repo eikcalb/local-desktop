@@ -45,7 +45,7 @@ export function getIDB(force: boolean = false): Promise<IDBDatabase> {
                     superStore.createIndex('username', 'username', { unique: true })
 
                     // Create Face data store and setup indices
-                    let faceStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.TRACKER, { keyPath: 'id' })
+                    let faceStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.TRACKER, { keyPath: 'id', autoIncrement: true })
                     faceStore.createIndex('uid', 'uid', { unique: true })
                 }
             }
