@@ -2,7 +2,7 @@ import { isWorker, worker } from "cluster";
 import { createServer, Server as HttpServer } from "http";
 import setupExpress from "./http.server";
 import setupWebSocket from "./websocket.server";
-import { ALL_SERVERS, HTTP_SERVER, WEBSOCKET_SERVER } from ".";
+import { HTTP_SERVER, WEBSOCKET_SERVER } from ".";
 
 const DEFAULT_PORT = 8080
 

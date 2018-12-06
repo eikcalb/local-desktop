@@ -39,7 +39,7 @@ const theme = createMuiTheme({
   typography: { allVariants: { textAlign: 'center' } },
   props: {
     MuiInput: {
-      autoComplete: 'off'// invalid value here will disable autocomplete
+      autoComplete: 'off'
     }
   }
 })
@@ -263,6 +263,9 @@ class App extends React.Component<IProps, unknown> {
                     </Paper>
                   </Zoom>
                   {/* <Tracker play track={Target.DETECT} detection={() => { return false }} notify={() => { return false }} recognize={() => { return false }} /> */}
+                  <Typography classes={{ root: this.props.classes.signatureRoot }} variant={'caption'} align='center' color='default' >
+                    &copy; Agwa Israel Onome, 2018
+                  </Typography>
                 </div>
               )
               } />
@@ -372,9 +375,6 @@ class App extends React.Component<IProps, unknown> {
                 </Dialog>
               )
             }
-            <Typography classes={{ root: this.props.classes.signatureRoot }} variant={'caption'} align='center' color='default' >
-              &copy; Agwa Israel Onome, 2018
-            </Typography>
             {this.props.newNotification ? this.parseNotification(this.props.newNotification) : null}
           </main>
         </div>

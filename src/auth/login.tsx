@@ -79,7 +79,7 @@ export class Login extends React.Component<ILoginProps, any>{
                                     trackerDone: false,
                                     showTracker: false,
                                     loginSuccess: false,
-                                    errorText: "Face not recognized"
+                                    errorText: message || "Face not recognized"
                                 })
                             }
                         }} />

@@ -39,3 +39,21 @@ export function drawCircleFromBox(ctx: CanvasRenderingContext2D, x: number, y: n
     ctx.stroke(ellipse)
     ctx.restore()
 }
+
+
+export function debounce(func:(...props:any)=>any, duration = 250, immediate = false) {
+    let timeout:any;
+    return function () {
+        //@ts-ignore
+        let context = this, args = arguments;
+        let later = function () {
+            console.log(context);
+            timeout = undefined;
+            if (!immediate) func.apply(context, args);
+        };
+        let callnow = immediate && !timeout
+        clearTimeout(timeout);
+        timeout = setTimeout(later, duration);
+        if (callnow) func.apply(context, args);
+    }
+}

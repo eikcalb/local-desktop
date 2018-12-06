@@ -35,6 +35,7 @@ export interface ITrackerProps {
 
 const MODELS = `${process.env.PUBLIC_URL}/weights`;
 const MIN_CONFIDENCE: number = 0.5;
+const MIN_EUCLIDEAN_DISTANCE: number = 0.4
 const MIN_VIDEO_HEIGHT: number = 52
 const MIN_VIDEO_WIDTH: number = 96
 
@@ -82,8 +83,8 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     }
 
     //*****
-    protected async __getReferenceFaces(): Promise<LabeledFaceDescriptors[]> {
-        return this._cachedReferences ? this._cachedReferences : new Promise<LabeledFaceDescriptors[]>(async (res, rej) => {
+    protected async __getReferenceFaces(force?: boolean): Promise<LabeledFaceDescriptors[]> {
+        return !force && this._cachedReferences ? this._cachedReferences : new Promise<LabeledFaceDescriptors[]>(async (res, rej) => {
             // let _self = this
             let db = await getIDB()
             let tranxn = db.transaction(DOCUMENTS.TRACKER, 'readonly')
@@ -267,18 +268,25 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                     // }
                     let face = await this.detectFaces(this.videoEl, true)
                     if (face) {
-                        this.props.callback(new TrackerResult(true, { ...face, message: 'Face captured successfully!' }))
+                        setTimeout(
+                            () => {
+                                if (face) this.props.callback(new TrackerResult(true, { ...face, message: 'Face captured successfully!' }))
+                            },
+                            1000
+                        )
                     }
                     break
                     break;
                 case Target.RECOGNIZE:
-                    let matcher = new FaceMatcher(await this.referenceFaces)
-
-                    let faceData = await this.recognizeFaces(this.videoEl, matcher, true)
+                    let faceData = await this.recognizeFaces(this.videoEl, await this.referenceFaces, true)
                     console.log(faceData)
-                    if (faceData) {
-                        this.props.callback(new TrackerResult(true, faceData, 'Face captured successfully!'))
-                    }
+                    setTimeout(
+                        () => {
+                            if (faceData) this.props.callback(new TrackerResult(true, faceData, 'Face captured successfully!'))
+                        },
+                        1000
+                    )
+
                     break;
             }
         } catch (e) {
@@ -320,7 +328,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                         let rBox = res.faceDetection.relativeBox
                         let { clientWidth, clientHeight } = this.canvasEl
                         let lMarks = res.faceLandmarks.getMouth()
-                        let rightPoint: Point = lMarks[0], leftPoint: Point = lMarks[lMarks.length - 1]
+                        let leftPoint: Point = lMarks[0], rightPoint: Point = lMarks[lMarks.length - 1]
                         let verticalDisplacement = leftPoint.y - rightPoint.y
                         drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
                             (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
@@ -339,7 +347,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         return null
     }
 
-    private async recognizeFaces(input: TrackerInputType, matcher: FaceMatcher, oneShot: boolean = true, show: boolean = true): Promise<IFaceData[] | null> {
+    private async recognizeFaces(input: TrackerInputType, reference: LabeledFaceDescriptors[], oneShot: boolean = true, show: boolean = true): Promise<IFaceData[] | null> {
         console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
 
         let fullFaceDescriptors = await faceapi.detectAllFaces(input, new TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: MIN_CONFIDENCE })).withFaceLandmarks(true).withFaceDescriptors();
@@ -360,15 +368,18 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                             let verticalDisplacement = leftPoint.y - rightPoint.y
                             drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
                                 (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
-                                { strokeColor: this.boxColor.default, padding: 3 },
+                                { strokeColor: this.boxColor.success, padding: 3 },
                                 Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (leftPoint.x - rightPoint.x)) : 0)
                             if (oneShot) this.videoEl.pause()
                         }
                     }
                 }
                 console.log(res)
-                let verified = this._verify(res, matcher)
-                if (verified.label && verified.label === this.props.expectedUsername) prev.push({ ...verified, face: res })
+
+                if (this.props.expectedUsername) {
+                    let verified = Tracker._verify(res, reference, this.props.expectedUsername)
+                    prev.push({ ...verified, face: res })
+                }
                 return prev
             }, faceData)//.sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
             if (result.length > 0) {
@@ -386,27 +397,36 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
      * 
      * @returns Promise<{label}> The label is the uid of the reference face matched
      */
-    public async verify(fdx: FullFaceDescription[], faceMatcher?: FaceMatcher): Promise<IFaceData[]> {
-        let matcher = faceMatcher || new FaceMatcher(await this.referenceFaces)
-        return fdx.map(fd => {
-            let faceMatch = this._verify(fd, matcher)
-            console.log(faceMatch);
-            return { ...faceMatch, face: fd }
-        })
-    }
+    // public async verify(fdx: FullFaceDescription[], faceMatcher?: FaceMatcher): Promise<IFaceData[]> {
+    //     let matcher = faceMatcher || new FaceMatcher(await this.referenceFaces)
+    //     return fdx.map(fd => {
+    //         let faceMatch = Tracker._verify(fd, matcher)
+    //         console.log(faceMatch);
+    //         return { ...faceMatch, face: fd }
+    //     })
+    // }
 
-    protected _verify(fd: FullFaceDescription, matcher: FaceMatcher): { label: string } {
-        let faceMatch = matcher.findBestMatch(fd.descriptor)
-        // let match = ref.map(({ descriptor, label }) => ({
-        //     label, distance: faceapi.euclideanDistance(fd.descriptor, descriptor)
-        // })
-        // ).sort((a, b) => a.distance - b.distance)
+    protected static _verify(fd: FullFaceDescription, ref: LabeledFaceDescriptors[], expectedLabel: string): { label: string } {
+        // console.log(matcher)
+        // let faceMatch = matcher.findBestMatch(fd.descriptor)
+        let match = ref.reduce((previous, { descriptors, label }): { distance: number, label: string }[] => {
+            if (label === expectedLabel) {
+                let preMatch = descriptors.reduce((accumulator, descriptor) => {
+                    const distance = faceapi.euclideanDistance(fd.descriptor, descriptor)
+                    if (MIN_EUCLIDEAN_DISTANCE >= distance) accumulator.push({ distance, label })
+                    return accumulator
+                }, new Array()).sort((a, b) => a.distance - b.distance)[0]
+                previous.push(preMatch)
+            }
+            return previous
+        }, new Array()).sort((a, b) => a.distance - b.distance)[0]
+        return { label: match.label }
         // return {
         //     detection: fd.detection,
         //     label: bestMatch.label,
         //     distance: bestMatch.distance
         // }
-        return { label: faceMatch.label }
+        // return { label: faceMatch.label }
     }
 
 }

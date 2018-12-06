@@ -4,6 +4,7 @@ import * as express from "express";
 export default function setupExpress() {
     let app: express.Express = express()
 
+    app.use(express.urlencoded())
     app.use(express.json());
 
     // app.use((req, res, next) => {
