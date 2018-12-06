@@ -4,17 +4,21 @@ import { Vehicle } from "./vehicle";
 
 export default class User {
     id: number = -1;
-    fullname: string;
-    public username: string;
+    public username: string = "John Doe"
+    fullname?: string;
     public email?: string;
     public faceDescriptor?: FullFaceDescription;
-    useFingerprint?: boolean;
+    password?: string | Buffer
+    salt?: string | Buffer
+    // useFingerprint?: boolean;
     isactive: boolean = false;
+    isPrivate: true
     location?: Location;
     vehicles?: Vehicle[] = []
     profile?: string;
     token?: string;
     isNewUser: boolean = false;
+    readonly isAdmin: boolean = false
     get profileSrc(): string {
         return "data:image/png;base64," + this.profile;
     }

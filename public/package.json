@@ -1,10 +1,12 @@
 {
   "name": "local-desktop",
-  "version": "0.1.0",
+  "version": "0.1.12",
   "description": "client for local fleet application",
   "main": "index.html",
   "user-agent": "%name: %ver by Eikcalb",
+  "node-main": "lib/index.js",
   "single-instance": true,
+  "app-id": "io.agwa.eikcalb.local-desktop",
   "author": {
     "name": "Agwa Israel Onome",
     "email": "agwaisraelonome@gmail.com"
@@ -18,7 +20,7 @@
     "toolbar": false,
     "position": "center",
     "min_width": 672,
-    "min_height": 364,
+    "min_height": 570,
     "width": 960,
     "height": 520,
     "transparent": true

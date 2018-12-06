@@ -4,13 +4,29 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "npm",
-            "script": "build",
+            "label": "My Task",
+            "type": "shell",
+            "args": [
+                "--build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "command": "launch",
             "problemMatcher": [],
             "group": {
                 "kind": "build",
                 "isDefault": true
             }
         }
+        // ,
+        // {
+        //     "script": "build",
+        //     "problemMatcher": [],
+        //     "group": {
+        //         "kind": "build",
+        //         "isDefault": true
+        //     }
+        // }
     ]
 }
