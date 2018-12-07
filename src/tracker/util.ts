@@ -57,3 +57,7 @@ export function debounce(func:(...props:any)=>any, duration = 250, immediate = f
         if (callnow) func.apply(context, args);
     }
 }
+
+export function isDebug(){
+    return process.env.ENV === 'development' || true
+}

@@ -169,8 +169,8 @@ a{
   position: relative;
   display: flex;
   justify-content: center;
-  flex-direction: row;
-  align-items: stretch;
+  flex-direction: column;
+  align-items: center;
 }
 
 .FineVideo{

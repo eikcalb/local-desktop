@@ -1,6 +1,6 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@material-ui/core";
 import * as faceapi from "face-api.js";
-import { FaceMatcher, FullFaceDescription, LabeledFaceDescriptors, Point, TinyFaceDetectorOptions } from "face-api.js";
+import { FullFaceDescription, LabeledFaceDescriptors, Point, TinyFaceDetectorOptions } from "face-api.js";
 import * as React from "react";
 import { MdCancel } from "react-icons/md";
 import { connect } from "react-redux";
@@ -280,12 +280,14 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 case Target.RECOGNIZE:
                     let faceData = await this.recognizeFaces(this.videoEl, await this.referenceFaces, true)
                     console.log(faceData)
-                    setTimeout(
-                        () => {
-                            if (faceData) this.props.callback(new TrackerResult(true, faceData, 'Face captured successfully!'))
-                        },
-                        1000
-                    )
+                    if (faceData) {
+                        setTimeout(
+                            () => {
+                                if (faceData) this.props.callback(new TrackerResult(true, faceData, 'Face captured successfully!'))
+                            },
+                            1000
+                        )
+                    }
 
                     break;
             }
@@ -351,8 +353,8 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
 
         let fullFaceDescriptors = await faceapi.detectAllFaces(input, new TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: MIN_CONFIDENCE })).withFaceLandmarks(true).withFaceDescriptors();
-        let faceData: IFaceData[] = new Array()
         if (fullFaceDescriptors.length > 0) {
+            const faceDataArray: IFaceData[] = new Array()
             let result = fullFaceDescriptors.reduce((prev, res) => {
                 if (res.faceDetection.score < MIN_CONFIDENCE) {
                     return prev
@@ -378,14 +380,15 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
 
                 if (this.props.expectedUsername) {
                     let verified = Tracker._verify(res, reference, this.props.expectedUsername)
+                    console.log('verified result: ', verified)
                     prev.push({ ...verified, face: res })
                 }
                 return prev
-            }, faceData)//.sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
+            }, faceDataArray)//.sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
             if (result.length > 0) {
                 return result
             } else {
-                if (oneShot) return this.cancel("User face does not match!"); else return null
+                if (oneShot) return this.cancel("User's face does not match!"); else return null
             }
         }
         return null
@@ -418,8 +421,11 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 }, new Array()).sort((a, b) => a.distance - b.distance)[0]
                 previous.push(preMatch)
             }
+            console.log('verified result: ', previous)
+
             return previous
         }, new Array()).sort((a, b) => a.distance - b.distance)[0]
+
         return { label: match.label }
         // return {
         //     detection: fd.detection,
