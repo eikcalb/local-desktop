@@ -1,9 +1,6 @@
-import { Modal, TextField, Typography } from "@material-ui/core";
 //TODO:  Remove this c and replae declarations with crypto constant defined below
 import * as jwt from "jsonwebtoken";
-import * as React from "react";
-import { connect } from "react-redux";
-import { Dispatch } from "redux";
+import User from "src/types/User";
 import { appPath } from "../startup";
 import { db, DOCUMENTS, getIDB } from "../store";
 import { IFaceData, ITrackerState } from "../tracker";
@@ -20,7 +17,7 @@ export const ADMIN_SALT_2_PATH = join(nw.App.dataPath, '.v1.admin.salt2')
 // const ROOT_PASSWORD='LAGBAJA'
 
 export default class Auth {
-    private key: Buffer | string
+    private key: { key: string, pass: string, pubKey?: string }
     // private salt: Buffer | string
     public adminKey: { key?: Buffer | string, pass?: Buffer | string, pubKey?: Buffer | string }
     // public adminSalt: Buffer | string
@@ -55,7 +52,7 @@ export default class Auth {
         let salt = crypto.randomBytes(this.saltLength)
         try {
             let hash = await this.genHash(key, salt)
-            return Promise.resolve({ salt, key: hash })
+            return Promise.resolve({ salt, key: hash.toString('utf8') })
         } catch (e) {
             return Promise.reject(false)
         }
@@ -66,6 +63,101 @@ export default class Auth {
             let newKey = crypto.pbkdf2Sync(key, salt, iteration, size, this.digest)
             return res(newKey)
         })
+    }
+
+    public async registerUser(username: string, email: string, password: string, passwordVerify: string): Promise<User> {
+        let auth = this
+        return new Promise<User>((res, rej) => {
+            username = username.trim()
+            if (!password || password !== passwordVerify) {
+                // Do not proceed after this error!
+                return rej(new Error("Passwords do not match!"));
+            } else {
+                getIDB(true).then(async db => {
+                    let tranx = db.transaction(DOCUMENTS.USERS, 'readwrite')
+                    tranx.onerror = tranx.onabort = function (e) {
+                        return rej(this.error)
+                    }
+                    let user = new User(username)
+                    user.email = email
+                    user.isNewUser = user.isactive = user.isPrivate = true
+                    let store = tranx.objectStore(DOCUMENTS.USERS)
+                    // let nameIndex = store.index('username')
+                    // let emailndex = store.index('email')
+                    let key = await this.genUserKey(password);
+                    if (!key) {
+                        return rej(new Error('Could not generate password!'))
+                    }
+                    user.password = key.key.toString()
+                    user.salt = key.salt
+                    user.id = crypto.randomBytes(auth.saltLength).toString('hex')
+                    store.add(user).addEventListener('success', async function () {
+                        if (this.result) {
+                            console.log(this.result)
+                            // You might need to preserve the password for encryption
+                            //TODO:     Generate new predictible password for encryption
+                            delete user.password
+                            // if (false != $result = $this -> loginuser($user, false)) {
+                            //     unset($user);
+                            //     echo json_encode($result);
+                            // } else {
+                            //     unset($user);
+                            //     $this -> db -> rollback();
+                            //     die(json_encode(['error' => ["Could not add user!"], 'errno' => '003']));
+                            // }
+                            user.token = auth.generateUserToken(user)
+                            return res(user)
+                        } else {
+                            tranx.abort()
+                            return rej(new Error('Could not add user!'))
+                        }
+                    })
+                }).catch(err => rej(err))
+            }
+        })
+
+    }
+
+    public loginUser(username: string, password: string, useToken: boolean = false): Promise<User> {
+        let auth = this
+        return new Promise<User>((res, rej) => {
+            getIDB(true).then(db => {
+                let tranx = db.transaction(DOCUMENTS.USERS, 'readonly')
+                tranx.onerror = tranx.onabort = function (e) {
+                    return rej(this.error)
+                }
+                let index = tranx.objectStore(DOCUMENTS.USERS).index('username')
+                index.get(username).addEventListener('success', async function (e) {
+                    if (this.result) {
+                        let user = this.result //as User
+                        let hash: Buffer = await auth.genHash(password, user.salt)
+
+                        if (crypto.timingSafeEqual(hash, user.password)) {
+                            //TODO:     Generate new predictible password for encryption
+                            delete user.password
+                            user.isNewUser = false
+                            user.token = auth.generateUserToken(user)
+                            return res(user as SuperUser)
+                        } else {
+                            return rej(new Error('Password or username incorrect!'))
+                        }
+                    }
+                    else {
+                        return rej(new Error('Username not found!'))
+                    }
+                })
+            }).catch(err => rej(err))
+        })
+
+    }
+
+    private generateUserToken(user: User) {
+        return this.createToken({
+            iat: Date.now()
+        }, { key: this.key.key, passphrase: this.key.pass }, {
+                audience: user.username,
+                expiresIn: '15m',
+            })
     }
 
     public registerSuperUser(username: string, email: string, pass: string, trackerData: IFaceData): Promise<SuperUser> {
@@ -91,7 +183,7 @@ export default class Auth {
                         user.password = await auth.genHash(pass, salt)
                         user.salt = salt
                         user.id = crypto.randomBytes(auth.saltLength).toString('hex')
-                        store.put(user).addEventListener('success', async function () {
+                        store.add(user).addEventListener('success', async function () {
                             if (this.result) {
                                 console.log(this.result)
                                 //TODO:     Generate new predictible password for encryption
@@ -100,7 +192,7 @@ export default class Auth {
                                 let trackerStoreData: ITrackerState = {
                                     faces: [],
                                     uid: user.id,
-                                    username: user.username
+                                    username: user.username.toLowerCase()
                                 }
                                 if (trackerData.faces) trackerStoreData.faces.push(...trackerData.faces.map(d => d.descriptor))
                                 if (trackerData.face) trackerStoreData.faces.push(trackerData.face.descriptor)
@@ -157,7 +249,6 @@ export default class Auth {
 
     }
 
-
     public grantApplicationAccess(pass: string): Promise<unknown> {
         let passwordHash: string
         return new Promise((res, rej) => {
@@ -170,7 +261,16 @@ export default class Auth {
                     fs.readFile(ADMIN_SALT_2_PATH, async (err: any, salt2: any) => {
                         if (err) throw err
                         if (crypto.timingSafeEqual(Buffer.from(passwordHash), await this.genHash(pass, salt))) {
-                            this.adminKey = { key: fs.readFileSync(join(appPath, '.v1.privkey')), pass: (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8'), pubKey: fs.readFileSync(join(appPath, '.v1.pubkey')) }
+                            this.adminKey = {
+                                key: fs.readFileSync(join(appPath, '.v1.privkey')),
+                                pass: (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8'),
+                                pubKey: fs.readFileSync(join(appPath, '.v1.pubkey'))
+                            }
+                            this.key = {
+                                key: (this.adminKey.key as Buffer).toString('utf8'),
+                                pass: (this.adminKey.pass as Buffer).toString('utf8'),
+                                pubKey: (this.adminKey.pubKey as Buffer).toString('utf8')
+                            }
                             return res()
                         } else {
                             return rej(new Error('Access denied!'))
@@ -185,7 +285,7 @@ export default class Auth {
 
     encrypt(alg: string = 'aes-256-cbc', key?: any) {
         let iv = crypto.randomBytes(16).toString('latin1')
-        let cypher = crypto.createCipheriv(alg, key || this.key, iv)
+        let cypher = crypto.createCipheriv(alg, key, iv)
         return (data: any) => {
             return btoa(iv) + IV_SEPARATOR + cypher.update(data, null, 'base64')
         }
@@ -193,15 +293,15 @@ export default class Auth {
 
     decrypt(data: string, alg: string = 'aes-256-cbc', key?: any) {
         let ivSepIndex = data.indexOf(IV_SEPARATOR)
-        let cypher = crypto.createDecipheriv(alg, key || this.key, data.substring(0, ivSepIndex))
+        let cypher = crypto.createDecipheriv(alg, key, data.substring(0, ivSepIndex))
         return cypher.update(Buffer.from(data.substring(ivSepIndex + 1), 'base64'), 'base64', 'utf8')
     }
 
-    createToken(payload: {}, pkey: any, options?: {}): string {
+    createToken(payload: {}, pkey: jwt.Secret, options?: jwt.SignOptions): string {
         return jwt.sign(payload, pkey, { algorithm: 'RS512', ...options })
     }
 
-    verifyToken(token: string, pubkey: any, opts?: {}) {
+    verifyToken(token: string, pubkey: any, opts?: jwt.VerifyOptions) {
         return jwt.verify(token, pubkey, { algorithms: ['RS512'], ...opts })
     }
 
@@ -213,25 +313,3 @@ export default class Auth {
         }).catch((e: any) => { throw e })
     }
 }
-
-
-const mapStateToProps = (stateProps: any, ownProps: any) => { }
-
-const mapDispatchToProps = (dispatch: Dispatch, ownProps: any) => { }
-
-export const AdminLogon = (props: any) => {
-    return (
-        <Modal disableBackdropClick disableEscapeKeyDown open={props.open} >
-            <div>
-                <Typography variant='h3' >Welcome to Local</Typography>
-                <Typography variant='subtitle2'>You <b>must</b> create an Administrator password to continue</Typography>
-                <TextField required type='password' variant='filled' />
-            </div>
-        </Modal>
-    )
-}
-
-export const AuthView = connect(mapStateToProps, mapDispatchToProps)(class extends React.Component<any, any>{
-
-}
-)

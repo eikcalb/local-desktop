@@ -41,7 +41,7 @@ export function drawCircleFromBox(ctx: CanvasRenderingContext2D, x: number, y: n
 }
 
 
-export function debounce(func:(...props:any)=>any, duration = 250, immediate = false) {
+export function debounce(func:(...props:any[])=>any, duration = 250, immediate = false) {
     let timeout:any;
     return function () {
         //@ts-ignore

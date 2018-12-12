@@ -114,7 +114,7 @@ export class Register extends React.Component<IRegisterProps, any>{
                                         "Face Captured!"
                                     ) : "Start Facial Recognition!"}
                                     {this.state.trackerDone ? (
-                                        <small>(Click to try again)</small>
+                                        <small>&emsp; (Click to try again)</small>
                                     ) : null}
                                 </Button>
 

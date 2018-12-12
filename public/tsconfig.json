@@ -13,7 +13,10 @@
         "checkJs": true,
         "jsx": "react",
         "moduleResolution": "node",
-        "rootDir": "src",
+        "rootDirs": [
+            "./",
+            "../src"
+        ],
         "outDir": "./lib",
         "forceConsistentCasingInFileNames": true,
         "noImplicitReturns": true,
@@ -23,16 +26,20 @@
         "suppressImplicitAnyIndexErrors": true,
         "noUnusedLocals": true
     },
-    "include": [
-        "./src/**/*"
-    ],
-    "exclude": [
+    "excludes": [
         "node_modules",
+        "/**/node_modules",
         "build",
         "scripts",
         "acceptance-tests",
         "webpack",
         "jest",
-        "src/setupTests.ts"
+        "src/setupTests.ts",
+        "../**/*.tsx",
+        "/**/*.tsx"
+    ],
+    "includes":[
+        "./src/**/*",
+        "../src/**/*"
     ]
 }

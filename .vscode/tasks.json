@@ -19,14 +19,5 @@
                 "isDefault": true
             }
         }
-        // ,
-        // {
-        //     "script": "build",
-        //     "problemMatcher": [],
-        //     "group": {
-        //         "kind": "build",
-        //         "isDefault": true
-        //     }
-        // }
     ]
 }

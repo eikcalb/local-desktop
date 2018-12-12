@@ -4,7 +4,7 @@
   "description": "client for local fleet application",
   "main": "index.html",
   "user-agent": "%name: %ver by Eikcalb",
-  "node-main": "lib/index.js",
+  "node-main": "lib/build/src/index.js",
   "single-instance": true,
   "app-id": "io.agwa.eikcalb.local-desktop",
   "author": {

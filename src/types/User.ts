@@ -60,3 +60,7 @@ export default class User {
 
 
 }
+
+export class PreAuthUser extends User {
+    passwordVerify?: string
+}

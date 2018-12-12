@@ -4,9 +4,10 @@ export class Vehicle {
     model: string;
     brand: string;
     year: number;
-    vid: string
+    vid: string // uniquely indexed
+    user: string
     color: string;
-    type: string;
+    type: Types;
     profile: string;
     id: number;
     location: Location;
@@ -16,4 +17,8 @@ export class Vehicle {
         this.id = id
         this.location = location
     }
+}
+
+export enum Types {
+    BUS, BULLDOZER, COUPE, FORKLIFT, HATCHBACK, SEDAN, SUV, TRACTOR, TRAILER, TRUCK
 }
