@@ -83,7 +83,7 @@ export function initialize(root: HTMLElement): void {
             root.className = size
         })
     if (!root.classList.contains('Restore') && root.classList.contains('Maximize')) {
-        root.classList.add('Restore')
+        root.classList.replace('Maximize', 'Restore')
     }
     // })
 }

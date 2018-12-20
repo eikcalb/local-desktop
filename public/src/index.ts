@@ -1,6 +1,8 @@
 import { disconnect, fork, isMaster, on, setupMaster } from "cluster";
 import { cpus } from 'os';
 import { join } from "path";
+import { createServer } from "http";
+import setupExpress from "./http.server";
 //TODO:     Implement statics gathering algorithm for the servers
 // import ClusterInfo from "./clusterinfo";
 
@@ -28,7 +30,7 @@ function serverIsBalanced(expectedCount: number, currentCount: number = _cluster
     return currentCount >= (expectedCount - clusterLeeway) && currentCount <= (expectedCount + clusterLeeway)
 }
 
-export function startServerCluster(percentageUsage: number, serverMask: Server = ALL_SERVERS) {
+export function startServerCluster(server: any, percentageUsage: number, serverMask: Server = ALL_SERVERS) {
     let numberOfWorkers = Math.min(Math.ceil(((percentageUsage / 100) || DEFAULT_SLAVE_PROCESS_PERCENTAGE_CONSUMPTION_EXCLUSIVE) * NUMBER_OF_PROCESSESORS), NUMBER_OF_PROCESSESORS)
     setupMaster({ exec: join(__dirname, 'slave.js') })
     if (isMaster) {
@@ -41,10 +43,15 @@ export function startServerCluster(percentageUsage: number, serverMask: Server =
             }
         })
 
+        on('online', worker => {
+            // Set cluster config with objects required for application to function
+            worker.send(new ClusterMessage(ClusterMessageType.INIT, server))
+        })
+
         on('message', console.log)
 
         on('exit', (w, c, sig) => {
-            _clusterCount--
+            _clusterCount = Math.max(_clusterCount - 1, 0)
             if (!_canDisconnect && !serverIsBalanced(numberOfWorkers) && _retryCount < 5) {
                 console.log(fork({ serverMask }))
                 _retryCount++
@@ -63,4 +70,33 @@ export function startServerCluster(percentageUsage: number, serverMask: Server =
 export function stopCluster() {
     _canDisconnect = true
     disconnect(() => { console.log("It has ended!") })
+}
+
+export function startTestServer(auth: any) {
+    let server = createServer(setupExpress(auth))
+    if (process.env.PORT) {
+        server.listen(parseInt(process.env.PORT), () => {
+            console.log(`${Date.now()}: Server process (${process.pid}) on worker started`)
+        }
+        )
+    } else {
+        server.listen(8080, () => {
+            console.log(`${Date.now()}: Server process (${process.pid}) on worker started`)
+        })
+    }
+}
+
+export class ClusterMessage {
+    type: ClusterMessageType
+    message: any
+    public from: string = 'master'
+
+    constructor(type: ClusterMessageType, message: any) {
+        this.message = message
+        this.type = type
+    }
+}
+
+export enum ClusterMessageType {
+    INIT
 }

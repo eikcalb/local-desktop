@@ -1,11 +1,10 @@
 import { isWorker, worker } from "cluster";
 import { createServer, Server as HttpServer } from "http";
+import { ClusterMessage, ClusterMessageType, HTTP_SERVER, WEBSOCKET_SERVER } from ".";
 import setupExpress from "./http.server";
 import setupWebSocket from "./websocket.server";
-import { HTTP_SERVER, WEBSOCKET_SERVER } from ".";
 
 const DEFAULT_PORT = 8080
-
 
 if (isWorker) {
     let port: number
@@ -14,17 +13,25 @@ if (isWorker) {
     } else {
         port = DEFAULT_PORT
     }
+    worker.send("Hello From Worker second " + worker.id)
+
+    let clusterConfig: any
     try {
-        worker.on('message', m => {
+        worker.on('error', worker.process.send)
+        worker.on('message', (m: ClusterMessage) => {
+            switch (m.type) {
+                case ClusterMessageType.INIT:
+                    clusterConfig = m.message
+                    break
+            }
             console.log(m)
             worker.send(m)
         })
-        worker.send("Hello From Worker " + worker.id)
         const useHttp = (Number(process.env.serverMask) & HTTP_SERVER) === HTTP_SERVER
         const useWebSocket = (Number(process.env.serverMask) & WEBSOCKET_SERVER) === WEBSOCKET_SERVER
         let server: HttpServer | null = null
         if (useHttp) {
-            server = createServer(setupExpress())
+            server = createServer(setupExpress(clusterConfig.httpServer))
             worker.send("Worker " + worker.id + " setup for Http Server!")
         }
         if (useWebSocket) {

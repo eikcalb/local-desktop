@@ -38,7 +38,7 @@ export function getIDB(force: boolean = false): Promise<IDBDatabase> {
                 if (target) {
                     // Create User store and setup indices
                     let store: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.USERS, { keyPath: 'id' })
-                    store.createIndex('email', 'email', { unique: true })
+                    // store.createIndex('email', 'email', { unique: true })
                     store.createIndex('username', 'username', { unique: true })
 
                     let superStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.SUPER_USERS, { keyPath: 'id' })

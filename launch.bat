@@ -9,6 +9,12 @@ set SHOULD_START=0
   set SHOULD_START=0
 )
 
+if "%1"=="-t" (
+set testing="25"
+) else if "%1"=="--test" (
+  set testing="25"
+)
+
 if "%1"=="--build" (
   goto :build
 ) else if "%1"=="-b" (

@@ -1,4 +1,4 @@
-//TODO:  Remove this c and replae declarations with crypto constant defined below
+//TODO:  Remove this c and replae declarations with crypto constant defined below ---  DONE !!!!!
 import * as jwt from "jsonwebtoken";
 import User from "src/types/User";
 import { appPath } from "../startup";
@@ -11,7 +11,7 @@ const { join } = window.require('path')
 const util = window.require('util')
 
 const IV_SEPARATOR = '.'
-const ITERATION_NUM = 64000 * 8// The number of iterations should double from `64000` every 2 years period from 2012
+const ITERATION_NUM = 64000 * 10 // The number of iterations should  at least double from `64000` every 2 years period from 2012
 export const ADMIN_SALT_1_PATH = join(nw.App.dataPath, '.v1.admin.salt')
 export const ADMIN_SALT_2_PATH = join(nw.App.dataPath, '.v1.admin.salt2')
 // const ROOT_PASSWORD='LAGBAJA'
@@ -34,14 +34,14 @@ export default class Auth {
         let salt2 = crypto.randomBytes(this.saltLength)
         try {
             let hash = await this.genHash(key, salt)
-            let hash2 = await this.genHash(salt, salt2, ITERATION_NUM / 10, this.keySize / 2)
+            let hash2 = await this.genHash(key, salt2, ITERATION_NUM / 10, this.keySize / 2)
             fs.writeFileSync(ADMIN_SALT_1_PATH, salt)
             fs.writeFileSync(ADMIN_SALT_2_PATH, salt2)
             db.setItem('.v1.admin.passwordHash', hash, (err) => {
                 if (err) throw err
             })
-            // HASH2 should be utf8 encoded to prevent errors while creatig keypair
-            return Promise.resolve({ salt: salt2, key: hash2.toString('utf8') })
+            // HASH2 should be utf8 encoded to prevent errors while creating keypair
+            return Promise.resolve({ salt: salt2, key: hash2.toString() })
         } catch (e) {
             console.log(e, `salt1: ${salt}`, `salt2: ${salt2}`)
             return Promise.reject(false)
@@ -52,7 +52,7 @@ export default class Auth {
         let salt = crypto.randomBytes(this.saltLength)
         try {
             let hash = await this.genHash(key, salt)
-            return Promise.resolve({ salt, key: hash.toString('utf8') })
+            return Promise.resolve({ salt, key: hash.toString() })
         } catch (e) {
             return Promise.reject(false)
         }
@@ -65,7 +65,11 @@ export default class Auth {
         })
     }
 
-    public async registerUser(username: string, email: string, password: string, passwordVerify: string): Promise<User> {
+    public getPublicKey() {
+        return this.key.pubKey
+    }
+
+    public async registerUser(username: string, password: string, passwordVerify: string): Promise<User> {
         let auth = this
         return new Promise<User>((res, rej) => {
             username = username.trim()
@@ -79,13 +83,13 @@ export default class Auth {
                         return rej(this.error)
                     }
                     let user = new User(username)
-                    user.email = email
                     user.isNewUser = user.isactive = user.isPrivate = true
                     let store = tranx.objectStore(DOCUMENTS.USERS)
                     // let nameIndex = store.index('username')
                     // let emailndex = store.index('email')
                     let key = await this.genUserKey(password);
                     if (!key) {
+                        tranx.abort()
                         return rej(new Error('Could not generate password!'))
                     }
                     user.password = key.key.toString()
@@ -105,7 +109,7 @@ export default class Auth {
                             //     $this -> db -> rollback();
                             //     die(json_encode(['error' => ["Could not add user!"], 'errno' => '003']));
                             // }
-                            user.token = auth.generateUserToken(user)
+                            user.token = await auth.generateUserToken(user)
                             return res(user)
                         } else {
                             tranx.abort()
@@ -136,7 +140,7 @@ export default class Auth {
                             //TODO:     Generate new predictible password for encryption
                             delete user.password
                             user.isNewUser = false
-                            user.token = auth.generateUserToken(user)
+                            user.token = await auth.generateUserToken(user)
                             return res(user as SuperUser)
                         } else {
                             return rej(new Error('Password or username incorrect!'))
@@ -154,7 +158,8 @@ export default class Auth {
     private generateUserToken(user: User) {
         return this.createToken({
             iat: Date.now()
-        }, { key: this.key.key, passphrase: this.key.pass }, {
+        }, { key: this.adminKey.key, passphrase: this.key.pass }, {
+                header: { typ: 'jwt' },
                 audience: user.username,
                 expiresIn: '15m',
             })
@@ -250,25 +255,28 @@ export default class Auth {
     }
 
     public grantApplicationAccess(pass: string): Promise<unknown> {
-        let passwordHash: string
+        let passwordHash: Buffer
         return new Promise((res, rej) => {
             try {
-                db.getItem('.v1.admin.passwordHash', (err, val) => {
+                db.getItem('.v1.admin.passwordHash', (err, val: Buffer) => {
                     if (err) throw err
                     if (!val) rej(new Error('Password has not been previously set!'))
-                    passwordHash = val as string
+                    passwordHash = val
                     let salt = fs.readFileSync(ADMIN_SALT_1_PATH)
                     fs.readFile(ADMIN_SALT_2_PATH, async (err: any, salt2: any) => {
                         if (err) throw err
-                        if (crypto.timingSafeEqual(Buffer.from(passwordHash), await this.genHash(pass, salt))) {
+                        let crosscheck = await this.genHash(pass, salt)
+                        console.log("checking if hash is equal: ", passwordHash, crosscheck)
+                        if (crypto.timingSafeEqual(Buffer.from(passwordHash), crosscheck)) {
+                            let passphrase = (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8')
                             this.adminKey = {
                                 key: fs.readFileSync(join(appPath, '.v1.privkey')),
-                                pass: (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8'),
+                                pass: passphrase,
                                 pubKey: fs.readFileSync(join(appPath, '.v1.pubkey'))
                             }
                             this.key = {
                                 key: (this.adminKey.key as Buffer).toString('utf8'),
-                                pass: (this.adminKey.pass as Buffer).toString('utf8'),
+                                pass: passphrase,
                                 pubKey: (this.adminKey.pubKey as Buffer).toString('utf8')
                             }
                             return res()
@@ -297,12 +305,17 @@ export default class Auth {
         return cypher.update(Buffer.from(data.substring(ivSepIndex + 1), 'base64'), 'base64', 'utf8')
     }
 
-    createToken(payload: {}, pkey: jwt.Secret, options?: jwt.SignOptions): string {
-        return jwt.sign(payload, pkey, { algorithm: 'RS512', ...options })
+    createToken(payload: {}, pkey: any, options?: jwt.SignOptions, callback?: jwt.SignCallback): Promise<string> {
+        return new Promise((res, rej) => {
+            jwt.sign(payload, pkey, { algorithm: 'RS512', ...options }, callback || function (err, encoded) {
+                if (err) rej(err)
+                return res(encoded)
+            })
+        })
     }
 
-    verifyToken(token: string, pubkey: any, opts?: jwt.VerifyOptions) {
-        return jwt.verify(token, pubkey, { algorithms: ['RS512'], ...opts })
+    verifyToken(token: string, pubkey: any, callback: jwt.VerifyCallback, opts?: jwt.VerifyOptions) {
+        return jwt.verify(token, pubkey, { algorithms: ['RS512'], ...opts }, callback)
     }
 
     public static async generateKeyPair(type: 'rsa' | 'dsa' | 'ec', options: {}): Promise<any> {

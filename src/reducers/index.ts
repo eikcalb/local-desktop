@@ -11,8 +11,8 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
     switch (action.type) {
         case TYPES.LOGIN:
             newState.user = action.body
-            newState.windowState.showAppBar=true
-            newState.windowState.canToggleAppBar=true
+            newState.windowState.showAppBar = true
+            newState.windowState.canToggleAppBar = true
             break
         case TYPES.REGISTER:
             break
@@ -21,10 +21,14 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
             rootWindow.close(action.body)
             break
         case TYPES.WINDOW_CONTROL_ACTION_FULLSCREEN:
-            newState.windowState.isWindowFullscreen = action.body
+            newState.windowState.isWindowFullscreen = action.body !== undefined ? action.body : true
+            break
+        case TYPES.WINDOW_CONTROL_ACTION_RESTORE:
+            newState.windowState.isWindowFullscreen = false
+            newState.windowState.isWindowMaximized = false
             break
         case TYPES.WINDOW_CONTROL_ACTION_MAXIMIZED:
-            newState.windowState.isWindowMaximized = action.body
+            newState.windowState.isWindowMaximized = action.body !== undefined ? action.body : true
             break
         case TYPES.WINDOW_CONTROL_ACTION_SHOWAPPBAR:
             newState.windowState.showAppBar = action.body

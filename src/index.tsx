@@ -11,14 +11,15 @@ import reducer from './reducers';
 import registerServiceWorker from "./registerServiceWorker";
 import { initialize } from './startup';
 import ILocalStore, { db, defaultStore } from './store';
-import { CLOSE_APPLICATION_WINDOW, DATABASE_READY, WINDOW_CONTROL_ACTION_FULLSCREEN, WINDOW_CONTROL_ACTION_MAXIMIZED, WINDOW_CONTROL_ACTION_SHOWAPPBAR } from './types';
+import { CLOSE_APPLICATION_WINDOW, DATABASE_READY, WINDOW_CONTROL_ACTION_FULLSCREEN, WINDOW_CONTROL_ACTION_MAXIMIZED, WINDOW_CONTROL_ACTION_SHOWAPPBAR, WINDOW_CONTROL_ACTION_RESTORE } from './types';
 import { IAction } from './actions';
 
 export const store = createStore<ILocalStore, Action, unknown, unknown>(reducer, defaultStore());
 
 const rootWindow = nw.Window.get()
-rootWindow.on('maximize', () => { store.dispatch({ type: WINDOW_CONTROL_ACTION_MAXIMIZED, body: true }) })
-  .on('restore', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_MAXIMIZED, body: false }))
+rootWindow.on('maximize', () => { store.dispatch({ type: WINDOW_CONTROL_ACTION_MAXIMIZED }) })
+  .on('restore', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_RESTORE }))
+  .on('enter-fullscreen', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_FULLSCREEN }))
 
 db.ready()
   .then(() => store.dispatch({ type: DATABASE_READY, ready: true }))

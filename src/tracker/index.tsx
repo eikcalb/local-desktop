@@ -17,6 +17,18 @@ export enum Target {
 
 export type TrackerInputType = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement
 
+const MODELS = `${process.env.PUBLIC_URL}/weights`;
+const MIN_CONFIDENCE: number = 0.5;
+const MIN_EUCLIDEAN_DISTANCE: number = 0.49
+const MIN_VIDEO_HEIGHT: number = 52
+const MIN_VIDEO_WIDTH: number = 96
+
+/**
+ * This is used to debounce video ops
+ */
+const IDEAL_FRAMERATE = 6
+
+
 export interface ITrackerProps {
     track: Target;
     notify: (message: IMessage) => any;
@@ -32,17 +44,6 @@ export interface ITrackerProps {
     callback: (result: TrackerResult) => any
 }
 
-
-const MODELS = `${process.env.PUBLIC_URL}/weights`;
-const MIN_CONFIDENCE: number = 0.5;
-const MIN_EUCLIDEAN_DISTANCE: number = 0.49
-const MIN_VIDEO_HEIGHT: number = 52
-const MIN_VIDEO_WIDTH: number = 96
-
-/**
- * This is used to debounce video ops
- */
-const IDEAL_FRAMERATE = 6
 
 export class Tracker extends React.PureComponent<ITrackerProps, any>{
 
@@ -74,6 +75,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     public boxColor: { [key: string]: string } = {
         success: '#5a58', default: '#fefefe88', fail: '#a558'
     }
+    private getVideoRef: (element: HTMLVideoElement) => void
 
     //TODO:  Make this to parse directory and get faces from that directory
     // TODO:  Save face descriptor alone without pictures.
@@ -125,6 +127,11 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             faceapi.loadFaceLandmarkTinyModel(MODELS),
             faceapi.loadFaceRecognitionModel(MODELS)
         ])
+        this.getVideoRef = (el: any) => {
+            if (el) {
+                this.videoEl = el
+            }
+        }
     }
 
     componentDidMount() {
@@ -201,7 +208,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                             id='v' poster={logo} onPause={() => this.running = false}
                             onPlaying={() => this.running = true} onPlay={() => { this.run() }}
                             src={process.env.PUBLIC_URL + '/video.example.ogg'}
-                            loop ref={(el) => { if (el) { this.videoEl = el } }}
+                            loop ref={this.getVideoRef}
                             style={{ objectFit: 'fill', zIndex: 1 }}>
                             <track kind={'descriptions'} srcLang={'en-US'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
                         </video>
@@ -256,10 +263,34 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                     },
                     e => {
                         console.error(e);
-                        this.props.notify(new Message(e.message || 'Error in capturing media stream!'));
+                        this.props.notify(new Message(e.message || 'Error while registering to capture media stream!'));
                     });
+        } else {
+            process.nextTick(() => setTimeout(this.registerTracker, 1500))
         }
 
+    }
+
+    async registerTracker(): Promise<any> {
+        console.log(this.videoEl);
+        if (isDebug()) {
+            if (!this.videoEl) {
+                return Promise.reject(new Error("No video element referenced!"));
+            }
+            this.canvasEl.width = this.videoEl.width
+            this.canvasEl.height = this.videoEl.height
+            this.ctx = this.canvasEl.getContext('2d');
+        } else {
+            if (!this.videoEl) {
+                this.mediaStream.stop()
+                return Promise.reject(new Error("No video element referenced!"));
+            }
+
+            this.videoEl.srcObject = this.mediaStream;
+            this.canvasEl.width = this.videoEl.width
+            this.canvasEl.height = this.videoEl.height
+            this.ctx = this.canvasEl.getContext('2d');
+        }
     }
 
     protected async _handle() {
@@ -300,26 +331,11 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         }
     }
 
-    async registerTracker(): Promise<any> {
-        console.log(this.videoEl);
-
-        if (!this.videoEl) {
-            this.mediaStream.stop()
-            return Promise.reject(new Error("No video element referenced!"));
-        }
-
-        this.videoEl.srcObject = this.mediaStream;
-        this.canvasEl.width = this.videoEl.width
-        this.canvasEl.height = this.videoEl.height
-        this.ctx = this.canvasEl.getContext('2d');
-    }
-
-
     /**
      * This is used to save a new face for recognition. New user creation might trigger this function.
      * There should be only one person visible during detection. This will take only the first face into consideration
      * 
-     * @param input Source stream to recogize from 
+     * @param input Source stream to recogize from. Either an image video or canvas, video is used here
      */
     private async detectFaces(input: TrackerInputType, oneShot: boolean = true, show: boolean = true, useBatch?: boolean) {
         //TODO:  Allow user select face incase of multiple faces
@@ -351,6 +367,17 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         return null
     }
 
+
+    /**
+     * This is used to recognize previously saved faces
+     * 
+     * @param input @see TrackerInputType Video
+     * @param reference @see LabeledFaceDescriptors[]
+     * @param oneShot boolean. Decides if the video should be paused on first result or it should run indefinitely
+     * @param show Whether to draw on the canvas, showing the face region
+     * 
+     * @returns Promise<IFaceData[]|null> Containing the recognized face that matches the provided @see this.props.expectedUsername
+     */
     private async recognizeFaces(input: TrackerInputType, reference: LabeledFaceDescriptors[], oneShot: boolean = true, show: boolean = true): Promise<IFaceData[] | null> {
         // console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
 
