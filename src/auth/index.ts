@@ -1,14 +1,16 @@
 //TODO:  Remove this c and replae declarations with crypto constant defined below ---  DONE !!!!!
-import * as jwt from "jsonwebtoken";
+import * as jsonwebtoken from "jsonwebtoken";
 import User from "src/types/User";
 import { appPath } from "../startup";
 import { db, DOCUMENTS, getIDB } from "../store";
 import { IFaceData, ITrackerState } from "../tracker";
 import SuperUser from "../types/SuperUser";
+import { signToken } from "./test";
 const crypto = window.require('crypto')
 const fs = window.require('fs')
 const { join } = window.require('path')
 const util = window.require('util')
+const jwt = window.require('jsonwebtoken')
 
 const IV_SEPARATOR = '.'
 const ITERATION_NUM = 64000 * 10 // The number of iterations should  at least double from `64000` every 2 years period from 2012
@@ -24,6 +26,8 @@ export default class Auth {
     private digest: string = 'sha512'
     private keySize: number = 124
     private saltLength: number = 48
+    public jwt = jwt
+    public signer = signToken
 
     constructor() {
         // this.key = process.env.LOCAL_PASSWORD
@@ -97,20 +101,25 @@ export default class Auth {
                     user.id = crypto.randomBytes(auth.saltLength).toString('hex')
                     store.add(user).addEventListener('success', async function () {
                         if (this.result) {
-                            console.log(this.result)
-                            // You might need to preserve the password for encryption
-                            //TODO:     Generate new predictible password for encryption
-                            delete user.password
-                            // if (false != $result = $this -> loginuser($user, false)) {
-                            //     unset($user);
-                            //     echo json_encode($result);
-                            // } else {
-                            //     unset($user);
-                            //     $this -> db -> rollback();
-                            //     die(json_encode(['error' => ["Could not add user!"], 'errno' => '003']));
-                            // }
-                            user.token = await auth.generateUserToken(user)
-                            return res(user)
+                            try {
+                                console.log(this.result)
+                                // You might need to preserve the password for encryption
+                                //TODO:     Generate new predictible password for encryption
+                                delete user.password
+                                // if (false != $result = $this -> loginuser($user, false)) {
+                                //     unset($user);
+                                //     echo json_encode($result);
+                                // } else {
+                                //     unset($user);
+                                //     $this -> db -> rollback();
+                                //     die(json_encode(['error' => ["Could not add user!"], 'errno' => '003']));
+                                // }
+                                user.token = await auth.generateUserToken(user)
+                                return res(user)
+                            } catch (err) {
+                                tranx.abort()
+                                return rej(err)
+                            }
                         } else {
                             tranx.abort()
                             return rej(new Error('Could not add user!'))
@@ -158,7 +167,7 @@ export default class Auth {
     private generateUserToken(user: User) {
         return this.createToken({
             iat: Date.now()
-        }, { key: this.adminKey.key, passphrase: this.key.pass }, {
+        }, { key: this.key.key, passphrase: this.key.pass }, {
                 header: { typ: 'jwt' },
                 audience: user.username,
                 expiresIn: '15m',
@@ -254,7 +263,13 @@ export default class Auth {
 
     }
 
-    public grantApplicationAccess(pass: string): Promise<unknown> {
+    /**
+     * This grants access to the application, using the administrator password.
+     * The password creates a hash which is used to decrypt the previously stored private key.
+     * 
+     * @param pass Administrator's password
+     */
+    public grantApplicationAccess(pass: string): Promise<void> {
         let passwordHash: Buffer
         return new Promise((res, rej) => {
             try {
@@ -262,22 +277,22 @@ export default class Auth {
                     if (err) throw err
                     if (!val) rej(new Error('Password has not been previously set!'))
                     passwordHash = val
+                    // Read salt for administrator password verification synchronously
                     let salt = fs.readFileSync(ADMIN_SALT_1_PATH)
+                    // Read salt used for encrypting private key from filesystem asynchronously
                     fs.readFile(ADMIN_SALT_2_PATH, async (err: any, salt2: any) => {
                         if (err) throw err
-                        let crosscheck = await this.genHash(pass, salt)
-                        console.log("checking if hash is equal: ", passwordHash, crosscheck)
-                        if (crypto.timingSafeEqual(Buffer.from(passwordHash), crosscheck)) {
-                            let passphrase = (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString('utf8')
+                        if (crypto.timingSafeEqual(Buffer.from(passwordHash), await this.genHash(pass, salt))) {
+                            let passphrase: string = (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString()
                             this.adminKey = {
                                 key: fs.readFileSync(join(appPath, '.v1.privkey')),
                                 pass: passphrase,
                                 pubKey: fs.readFileSync(join(appPath, '.v1.pubkey'))
                             }
                             this.key = {
-                                key: (this.adminKey.key as Buffer).toString('utf8'),
+                                key: (this.adminKey.key as Buffer).toString(),
                                 pass: passphrase,
-                                pubKey: (this.adminKey.pubKey as Buffer).toString('utf8')
+                                pubKey: (this.adminKey.pubKey as Buffer).toString()
                             }
                             return res()
                         } else {
@@ -305,16 +320,16 @@ export default class Auth {
         return cypher.update(Buffer.from(data.substring(ivSepIndex + 1), 'base64'), 'base64', 'utf8')
     }
 
-    createToken(payload: {}, pkey: any, options?: jwt.SignOptions, callback?: jwt.SignCallback): Promise<string> {
+    createToken(payload: {}, pkey: any, options?: jsonwebtoken.SignOptions, callback?: jsonwebtoken.SignCallback): Promise<string> {
         return new Promise((res, rej) => {
-            jwt.sign(payload, pkey, { algorithm: 'RS512', ...options }, callback || function (err, encoded) {
+            jwt.sign(payload, pkey, { algorithm: 'RS512', ...options }, callback || function (err: any, encoded: string) {
                 if (err) rej(err)
                 return res(encoded)
             })
         })
     }
 
-    verifyToken(token: string, pubkey: any, callback: jwt.VerifyCallback, opts?: jwt.VerifyOptions) {
+    verifyToken(token: string, pubkey: any, callback: jsonwebtoken.VerifyCallback, opts?: jsonwebtoken.VerifyOptions) {
         return jwt.verify(token, pubkey, { algorithms: ['RS512'], ...opts }, callback)
     }
 

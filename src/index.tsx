@@ -28,6 +28,7 @@ db.ready()
     initialize(document.getElementById('root') as HTMLElement)
     rootWindow.show();
     rootWindow.requestAttention(true);
+    rootWindow.setShowInTaskbar(true)
     rootWindow.showDevTools()
   })
 
