@@ -5,7 +5,6 @@ import { appPath } from "../startup";
 import { db, DOCUMENTS, getIDB } from "../store";
 import { IFaceData, ITrackerState } from "../tracker";
 import SuperUser from "../types/SuperUser";
-import { signToken } from "./test";
 const crypto = window.require('crypto')
 const fs = window.require('fs')
 const { join } = window.require('path')
@@ -26,8 +25,6 @@ export default class Auth {
     private digest: string = 'sha512'
     private keySize: number = 124
     private saltLength: number = 48
-    public jwt = jwt
-    public signer = signToken
 
     constructor() {
         // this.key = process.env.LOCAL_PASSWORD

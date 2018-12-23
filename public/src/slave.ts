@@ -13,38 +13,48 @@ if (isWorker) {
     } else {
         port = DEFAULT_PORT
     }
-    worker.send("Hello From Worker second " + worker.id)
-
     let clusterConfig: any
+
     try {
-        worker.on('error', worker.process.send)
-        worker.on('message', (m: ClusterMessage) => {
-            switch (m.type) {
-                case ClusterMessageType.INIT:
-                    clusterConfig = m.message
-                    break
-            }
-            console.log(m)
-            worker.send(m)
-        })
         const useHttp = (Number(process.env.serverMask) & HTTP_SERVER) === HTTP_SERVER
         const useWebSocket = (Number(process.env.serverMask) & WEBSOCKET_SERVER) === WEBSOCKET_SERVER
         let server: HttpServer | null = null
-        if (useHttp) {
-            server = createServer(setupExpress(clusterConfig.httpServer))
-            worker.send("Worker " + worker.id + " setup for Http Server!")
-        }
-        if (useWebSocket) {
-            setupWebSocket(useHttp && server ? { server } : { port })
-            worker.send("Worker " + worker.id + " setup for WebSocket Server!")
-        }
-        if (useHttp && server) {
-            server.listen(port, () => {
-                worker.send(`${Date.now()}: Server process (${process.pid}) on worker ${worker.id} started`)
-            })
-        }
 
+        worker.send(`Hello From Worker second ${worker.id}!\r\nAwaiting init command...`)
+        worker.on('error', worker.process.send)
+        //@ts-ignore
+        worker.send(global)
+        console.log(global)
+
+        worker.on('message', (m: ClusterMessage) => {
+            if (m.from === 'master') {
+                switch (m.type) {
+                    // Initialize the cluster and start the server
+                    case ClusterMessageType.INIT:
+                        clusterConfig = m.message
+
+                        if (useHttp) {
+                            server = createServer(setupExpress(clusterConfig.httpServer))
+                            worker.send("Worker " + worker.id + " setup for Http Server!")
+                        }
+                        if (useWebSocket) {
+                            setupWebSocket(useHttp && server ? { server } : { port })
+                            worker.send("Worker " + worker.id + " setup for WebSocket Server!")
+                        }
+                        if (useHttp && server) {
+                            server.listen(port, () => {
+                                worker.send(`${Date.now()}: Server process (${process.pid}) on worker ${worker.id} started`)
+                            })
+                        }
+                        break
+                    default:
+                        console.log(m)
+                        worker.send(m)
+                }
+            }
+        })
     } catch (e) {
+        worker.send(new ClusterMessage(ClusterMessageType.WORKER_ERROR, e))
         console.error(e)
     }
 

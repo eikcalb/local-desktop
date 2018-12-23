@@ -14,7 +14,7 @@
   "window": {
     "id": "main-application-window",
     "icon": "favicon.ico",
-    "show": true,
+    "show": false,
     "shadow": true,
     "frame": false,
     "toolbar": false,

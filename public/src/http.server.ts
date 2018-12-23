@@ -1,30 +1,5 @@
 import * as express from "express";
-
-declare type Auth = any
-
-declare type Vehicle = any
-
-declare type Server = {
-    auth: Auth
-    addUser(username: string, password: string, passwordVerify: string): Promise<Response>
-
-    loginUser(username: string, token: string): Promise<Response>
-
-    logoutUser(username: string): Promise<Response>
-
-
-    /**
-     * Fetches all vehicles registered on the platform or for a particular user.
-     * 
-     * @param user username of vehicle owner to retrieve
-     * @param batch starting point and amount of records to fetch
-     */
-    getVehicles(user?: string, batch?: { limit: number, count: number }): Promise<Vehicle[]>
-
-    setup(options: any): Server
-
-}
-
+import Server from "./server/server";
 
 export default function setupExpress(server: Server) {
     let app: express.Express = express()

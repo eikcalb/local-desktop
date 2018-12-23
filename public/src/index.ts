@@ -30,9 +30,18 @@ function serverIsBalanced(expectedCount: number, currentCount: number = _cluster
     return currentCount >= (expectedCount - clusterLeeway) && currentCount <= (expectedCount + clusterLeeway)
 }
 
-export function startServerCluster(server: any, percentageUsage: number, serverMask: Server = ALL_SERVERS) {
+/**
+ * Starts cluster servers according to the `serverMask` provided.
+ * The clusters are started first then the master starts the servers when appropriate.
+ * 
+ * @param server Object for server configuration
+ * @param percentageUsage Number indicating percentage of CPU usage
+ * @param serverMask 0b01 for HTTP server, 0b10 for WebSocket server
+ */
+export function startServerCluster(server: any, percentageUsage: number, serverMask: Server = HTTP_SERVER) {
     let numberOfWorkers = Math.min(Math.ceil(((percentageUsage / 100) || DEFAULT_SLAVE_PROCESS_PERCENTAGE_CONSUMPTION_EXCLUSIVE) * NUMBER_OF_PROCESSESORS), NUMBER_OF_PROCESSESORS)
-    setupMaster({ exec: join(__dirname, 'slave.js') })
+    setupMaster({ exec: join(__dirname, 'slave.js'), silent: false })
+    if (!server || typeof server !== 'object') throw new ReferenceError('Server config must be an object instance!')
     if (isMaster) {
         on('fork', worker => {
             _clusterCount++
@@ -45,7 +54,13 @@ export function startServerCluster(server: any, percentageUsage: number, serverM
 
         on('online', worker => {
             // Set cluster config with objects required for application to function
-            worker.send(new ClusterMessage(ClusterMessageType.INIT, server))
+            worker.send(new ClusterMessage(ClusterMessageType.INIT, server), null, (err) => {
+                if (err) {
+                    console.log(err)
+                    console.info(`Worker ${worker.id} could not be initialized!`, '... Kill it!...')
+                    worker.kill()
+                }
+            })
         })
 
         on('message', console.log)
@@ -89,14 +104,15 @@ export function startTestServer(auth: any) {
 export class ClusterMessage {
     type: ClusterMessageType
     message: any
-    public from: string = 'master'
+    public from: string
 
-    constructor(type: ClusterMessageType, message: any) {
+    constructor(type: ClusterMessageType, message: any, from?: string) {
         this.message = message
         this.type = type
+        this.from = from ? from.toLowerCase() : 'master'
     }
 }
 
 export enum ClusterMessageType {
-    INIT
+    INIT, WORKER_ERROR
 }

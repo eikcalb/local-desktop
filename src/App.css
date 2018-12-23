@@ -1,38 +1,42 @@
 @import "./keyframes.css" all;
-
-body{
+body {
   background-color: transparent !important;
-  background-clip:padding-box;
+  background-clip: padding-box;
 }
 
-::-webkit-scrollbar{
+::-webkit-scrollbar {
   background: transparent
 }
 
-::-webkit-scrollbar-button{
+::-webkit-scrollbar-button {
   background: #224a
 }
-::-webkit-scrollbar-button:hover{
+
+::-webkit-scrollbar-button:hover {
   background: #335
 }
-::-webkit-scrollbar-corner{
+
+::-webkit-scrollbar-corner {
   background: transparent
 }
-::-webkit-scrollbar-thumb{
+
+::-webkit-scrollbar-thumb {
   background: rgba(22, 76, 104, 0.667)
 }
-::-webkit-scrollbar-thumb:hover{
+
+::-webkit-scrollbar-thumb:hover {
   background: #8af8
 }
-::-webkit-scrollbar-track{
+
+::-webkit-scrollbar-track {
   background: #aaa8
 }
-::-webkit-scrollbar-track:hover{
+
+::-webkit-scrollbar-track:hover {
   background: #fff8
 }
 
-
-#root{
+#root {
   user-select: none;
   display: flex;
   flex-direction: row;
@@ -42,37 +46,37 @@ body{
   width: 100vw;
   overflow: hidden;
   border-radius: 1em;
-  background: #000; /*linear-gradient(#202082,60%,#0f0f38,94%,#010015);*/
+  background: #000;
+  /*linear-gradient(#202082,60%,#0f0f38,94%,#010015);*/
 }
 
-#root.Maximize, #root.Fullscreen{
+#root.Maximize, #root.Fullscreen {
   border-radius: 0;
 }
 
-a{
+a {
   text-decoration: none
 }
 
-
-.Toolbar{
+.Toolbar {
   -webkit-app-region: drag;
   height: 1.8em !important;
   font-family: 'Times New Roman', Times, serif;
   font-size: .75em;
   font-weight: bolder;
-  color:#bdbdbd;
+  color: #bdbdbd;
   padding: 0.3em 1.3em 0.3em 1.4em;
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  background:#191919;
+  background: #191919;
   white-space: nowrap;
   z-index: 10000;
   border-radius: 1em 1em 0 0
 }
 
-.Controls{
+.Controls {
   display: flex;
   flex-direction: row;
   font-size: 1.1em;
@@ -80,16 +84,17 @@ a{
   align-items: center;
 }
 
-.Control:nth-child(2){
+.Control:nth-child(2) {
   margin: 0 0.3em;
 }
-.Toolbar .Control{
+
+.Toolbar .Control {
   -webkit-app-region: no-drag;
   transition: all ease 200ms;
   filter: contrast(10%);
 }
 
-.Toolbar .Control:hover{
+.Toolbar .Control:hover {
   filter: contrast(100%);
   font-size: 1.4em;
 }
@@ -124,34 +129,34 @@ a{
   font-size: 1.3em;
 }
 
-.App-loading{
+.App-loading {
   flex-direction: row;
   justify-content: space-evenly;
   align-items: center;
   margin: 2em auto;
-  width:4.3em;
-  display:flex;
+  width: 4.3em;
+  display: flex;
 }
 
-.App-loading-item{
+.App-loading-item {
   background: #222;
   border-radius: 3em;
   animation-name: appLoading;
-  height:0.7em;
-  width:0.7em;
+  height: 0.7em;
+  width: 0.7em;
   animation-duration: 0.5s
 }
 
-@keyframes appLoading{
-  40%{
-    background:#222;
-    height:1em;
-    width:1em;
+@keyframes appLoading {
+  40% {
+    background: #222;
+    height: 1em;
+    width: 1em;
   }
-  80%{
+  80% {
     background: #fff;
-    height:1.2em;
-    width:1.2em;
+    height: 1.2em;
+    width: 1.2em;
   }
 }
 
@@ -160,12 +165,16 @@ a{
 }
 
 @keyframes App-logo-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.Tracker{
-  flex:1;
+.Tracker {
+  flex: 1;
   position: relative;
   display: flex;
   justify-content: center;
@@ -173,21 +182,21 @@ a{
   align-items: center;
 }
 
-.FineVideo{
+.FineVideo {
   filter: brightness(1.2) contrast(1.82) saturate(1);
   transform-box: border-box;
   transform: rotateY(180deg);
 }
 
-.FineVideo.NoColor{
+.FineVideo.NoColor {
   filter: brightness(1.2) contrast(1.82) saturate(0)
 }
 
-.FineVideo.Gray{
+.FineVideo.Gray {
   filter: brightness(1.2) contrast(1.82) grayscale(1)
 }
 
-.FineVideo ~ canvas{
+.FineVideo~canvas {
   transform-box: border-box;
   transform: rotateY(180deg);
 }
