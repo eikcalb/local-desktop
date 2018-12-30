@@ -43,7 +43,7 @@ if (isWorker) {
                         }
                         if (useHttp && server) {
                             server.listen(port, () => {
-                                worker.send(`${Date.now()}: Server process (${process.pid}) on worker ${worker.id} started`)
+                                worker.send(`${new Date().toISOString()}: Server process (${process.pid}) on worker ${worker.id} started`)
                             })
                         }
                         break

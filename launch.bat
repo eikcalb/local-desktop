@@ -33,6 +33,7 @@ if not !ERRORLEVEL!==0 (
     echo An error occurred while building application
     goto :END
 )
+RD /S /Q "./build/src"
 if "%SHOULD_START%"=="1" (
   goto :start
 )
