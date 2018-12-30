@@ -72,7 +72,7 @@ export class Login extends React.Component<ILoginProps, any>{
                     <TextField error={this.state.error} onChange={({ target: { value } }) => {
                         this.setState(
                             { password: value, error: !value })
-                    }} helperText={'Password should be at least 8 characters long!'} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Password' type='password' name='password' />
+                    }} helperText={'Password should be at least 8 characters long!'} required fullWidth variant='outlined' margin='normal' label='Enter Password' type='password' name='password' />
                     <DialogActions>
                         <Button fullWidth disabled={this.state.error || this.state.loading}
                             variant={'raised'} color='primary'

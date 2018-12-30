@@ -3,7 +3,7 @@ import classNames from "classnames";
 import * as React from 'react';
 import { FaMap } from 'react-icons/fa';
 import { MdCancel, MdLock, MdMenu, MdPersonAdd } from 'react-icons/md';
-import Particles from "react-particles-js";
+import { default as Particles } from "react-particles-js";
 import { connect } from 'react-redux';
 import { Link, Route, Switch, withRouter } from 'react-router-dom';
 import { Dispatch } from 'redux';
@@ -15,6 +15,7 @@ import Message from './notification';
 import particlesConfig from './particlesjs-config.json';
 import particlesConfigStop from './particlesjs-config.stop.json';
 import ROUTES from "./routes";
+import santa from './santa.png';
 import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
 import { NOTIFICATION } from './types';
@@ -36,7 +37,12 @@ const theme = createMuiTheme({
     primary: colors.blue,
     type: 'dark'
   },
-  typography: { allVariants: { textAlign: 'center' } }
+  typography: { allVariants: { textAlign: 'center' } },
+  props: {
+    MuiInput: {
+      autoComplete: 'false'
+    }
+  }
 })
 
 const drawerWidth = 240
@@ -145,7 +151,7 @@ const styles = createStyles((theme: Theme) => ({
     [theme.breakpoints.down('md')]: {
       textAlign: 'center'
     },
-    textShadow:new Date().getMonth()===11?'#000 0 1px 2px':'#aaa 0 1px 2px'
+    textShadow: new Date().getMonth() === 11 ? '#000 0 1px 2px' : '#55a 0 1px 2px'
 
   }
 }))
@@ -172,10 +178,17 @@ class App extends React.Component<IProps, unknown> {
     if (isFirstRun()) {
       this.state.setupNewAdmin = true
     }
+    if (new Date().getMonth() === 11) {
+      this.state.particlesParams.particles.move.direction = "bottom"
+    }
 
     // Run scripts needed to startup application
     // startup('lord')
     // console.log(window.require('fs'))
+  }
+
+  componentDidMount() {
+
   }
 
   parseNotification(notification: Message) {
@@ -225,8 +238,16 @@ class App extends React.Component<IProps, unknown> {
             <Switch>
               {...ROUTES}
               <Route render={(props) => (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-                  <Particles params={this.state.adminDialogOpen || !props.match && props.location.pathname !== '/' ? this.state.particlesParamsStop : this.state.particlesParams} style={{ position: 'absolute', top: 0, left: 0, background: new Date().getMonth() === 11 ? '#a44' : 'linear-gradient(rgb(1, 1, 29), 60%, rgb(0, 0, 35), 94%, rgb(2, 2, 19))' }} />
+                <div style={{
+                  flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center',
+                  backgroundImage: new Date().getMonth() === 11 ? santa : ''
+                }}>
+                  <Particles params={this.state.adminDialogOpen || props.history.location.pathname !== '/' ? this.state.particlesParamsStop : this.state.particlesParams}
+                    style={{
+                      position: 'absolute',
+                      top: 0, left: 0,
+                      backgroundColor: new Date().getMonth() === 11 ? "#a44" : 'linear-gradient(rgb(1, 1, 29), 60%, rgb(0, 0, 35), 94%, rgb(2, 2, 19))'
+                    }} />
                   <Zoom in>
                     <Paper className="animated fadein" style={{ padding: '3em', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }} >
                       <FaMap color='#ddd' className="animated bounce" size={'10em'} />

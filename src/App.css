@@ -19,16 +19,16 @@ body{
   background: transparent
 }
 ::-webkit-scrollbar-thumb{
-  background: #111a
+  background: rgba(22, 76, 104, 0.667)
 }
 ::-webkit-scrollbar-thumb:hover{
-  background: #558
+  background: #8af8
 }
 ::-webkit-scrollbar-track{
-  background: #0006
+  background: #aaa8
 }
 ::-webkit-scrollbar-track:hover{
-  background: #8884
+  background: #fff8
 }
 
 

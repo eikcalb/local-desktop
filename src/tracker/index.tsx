@@ -9,12 +9,11 @@ import { Dispatch } from "redux";
 import logo from '../logo.svg';
 import Message, { IMessage } from "../notification";
 import { DOCUMENTS, getIDB } from "../store";
-import { FACE_DETECT, FACE_DETECT_ADD, NOTIFICATION } from "../types";
+import { NOTIFICATION } from "../types";
 import { drawCircleFromBox, getImageFromMedia } from "./util";
-import { Redirect } from "react-router";
 
 export enum Target {
-    DETECT, RECOGNIZE, VERIFY
+    DETECT, RECOGNIZE
 }
 
 export type TrackerInputType = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement
@@ -27,17 +26,15 @@ interface ITrackerReference {
 export interface ITrackerProps {
     track: Target;
     notify: (message: IMessage) => any;
-    detection: any;
-    recognize: any;
     play?: boolean;
-    height?: number
-    width?: number,
+    videoHeight?: number
+    videoWidth?: number,
     canCancel?: boolean,
     classes?: any,
     dialogContainer?: any,
     location?: any,
-    open?: boolean,
-    callback?: (result: TrackerResult) => any
+    open: boolean,
+    callback: (result: TrackerResult) => any
 }
 
 
@@ -57,7 +54,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     private canvasEl: HTMLCanvasElement;
     private mediaStream: MediaStream;
     private videoTrack: MediaStreamTrack
-    private useBatch: boolean = true;
+    // private useBatch: boolean = true;
     public fullFaceDescriptors: FullFaceDescription[] | MtcnnResult[] | {}[];
     private _isRunning: boolean
     get running(): boolean {
@@ -77,7 +74,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     private rafId: number
     private updateRate: number = (1000 / IDEAL_FRAMERATE)
     public boxColor: { [key: string]: string } = {
-        success: '#5a58', default: '#55a8', fail: '#a558'
+        success: '#5a58', default: '#fefefe88', fail: '#a558'
     }
 
     //TODO:  Make this to parse directory and get faces from that directory
@@ -131,8 +128,11 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
 
     componentWillUnmount() {
         cancelAnimationFrame(this.rafId);
-        this.mediaStream.stop();
-        this.mediaStream.oninactive = null;
+        if (this.mediaStream) {
+            if (this.mediaStream.stop) this.mediaStream.stop();
+            this.mediaStream.oninactive = null;
+        }
+        if (this.videoTrack) this.videoTrack.stop()
         delete this.canvasEl
         delete this.videoEl
         delete this.videoTrack
@@ -140,7 +140,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     }
 
     canRunAlg(time: number, multiplier: number = 1): boolean {
-        console.log(Math.max(0, (time - this.timer)), '< should be reater than >', this.updateRate)
+        console.log(Math.max(0, (time - this.timer)), '< should be greater than >', this.updateRate)
         if (Math.max(0, (time - this.timer)) >= (this.updateRate * multiplier)) {
             this.timer = time
             return true
@@ -157,9 +157,9 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         this.running = snapshot
     }
 
-    updateConstraints(constraints: MediaTrackConstraints) {
-        this.videoTrack.applyConstraints(constraints)
-    }
+    // updateConstraints(constraints: MediaTrackConstraints) {
+    //     this.videoTrack.applyConstraints(constraints)
+    // }
 
     run() {
         let now: number = Date.now()
@@ -170,62 +170,52 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             console.info('Running: ')
 
             this._handle()
-        } faceapi.getMediaDimensions
+        }
         if (this.running) { this.rafId = requestAnimationFrame(this.run.bind(this)) }
     }
 
     render() {
-        if (this.state.success) {
-            if (this.props.location.state && this.props.location.state.from) {
-                let { from } = this.props.location.state
-                return (<Redirect to={from} />)
-            }
-            return (<Redirect to={{ pathname: '/' }} />)
-        }
-        else if (this.state.cancel) {
-            if (this.props.location.state && this.props.location.state.from) {
-                let { from } = this.props.location.state
-                return (<Redirect to={{ ...from, state: { ...from.state, registrationCancel: true } }} />)
-            }
-            return (<Redirect to={{ pathname: '/', state: { registrationCancel: true } }} />)
-        } else {
-            return (
-                <Dialog className="Tracker"
-                    BackdropProps={{ style: { position: 'absolute' } }} container={this.props.dialogContainer}
-                    // PaperProps={this.state.error ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { maxWidth: '30em', flex: 1 } }}
-                    classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
-                    disableBackdropClick disableEscapeKeyDown
-                    scroll='body' onClose={() => null} open={this.props.open || false}>
-                    <DialogTitle>Center Your Face On The Camera!</DialogTitle>
-                    <DialogContent>
-                        <div className="Tracker">
-                            <video className={"FineVideo"} width={this.props.width || (MIN_VIDEO_WIDTH * 8)} height={this.props.height || (MIN_VIDEO_HEIGHT * 8)} id='v' poster={logo} autoPlay onPause={() => this.running = false} onPlaying={() => this.running = true} onLoadedMetadata={() => { this.run() }} controls={false} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }} style={{ objectFit: 'fill', zIndex: 1 }}>
-                                <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
-                            </video>
-                            <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'absolute', top: 0 }} />
-                            {/* <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} /> */}
-                            {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
-                        </div>
-                        <DialogActions>
-                            <Button fullWidth
-                                variant={'raised'} color='secondary' hidden={!this.props.canCancel} onClick={() => { this.setState({ cancel: true }); this.videoTrack.stop() }} >
-                                <MdCancel />&emsp; Cancel
+        return (
+            <Dialog className="Tracker"
+                BackdropProps={{ style: { position: 'absolute' } }} container={this.props.dialogContainer}
+                // PaperProps={this.state.error ? { style: { animationName: 'shake', animationDuration: '900ms', animationFillMode: 'both', maxWidth: '30em', flex: 1 } } : { style: { maxWidth: '30em', flex: 1 } }}
+                classes={{ root: this.props.classes.dialogRoot, scrollBody: this.props.classes.dialogBody }}
+                disableBackdropClick disableEscapeKeyDown
+                scroll='body' onClose={() => null} open={this.props.open}>
+                <DialogTitle>Center Your Face On The Camera!</DialogTitle>
+                <DialogContent>
+                    <div className="Tracker">
+                        <video className={"FineVideo"} width={this.props.videoWidth || (MIN_VIDEO_WIDTH * 6)} height={this.props.videoHeight || (MIN_VIDEO_HEIGHT * 8)}
+                            id='v' poster={logo} onPause={() => this.running = false}
+                            onPlaying={() => this.running = true} onPlay={() => { this.run() }}
+                            autoPlay
+                            controls={true} onLoad={this._onload} ref={(el) => { if (el !== null) { this.videoEl = el } }}
+                            style={{ objectFit: 'fill', zIndex: 1 }}>
+                            <track kind={'descriptions'} srcLang={'en'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
+                        </video>
+                        <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'absolute', top: 0 }} />
+                        {/* <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} /> */}
+                        {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
+                    </div>
+                    <DialogActions>
+                        <Button fullWidth
+                            variant={'raised'} color='secondary' hidden={!this.props.canCancel} onClick={() => { return this.props.callback(new TrackerResult(false, { message: "User cancelled request!" })); }} >
+                            <MdCancel />&emsp; Cancel
                         </Button>
-                        </DialogActions>
+                    </DialogActions>
 
-                    </DialogContent>
-                </Dialog >
-            )
-        }
+                </DialogContent>
+            </Dialog >
+        )
     }
 
     async _onload() {
         // prepare models for future work
         await faceapi.loadMtcnnModel(MODELS);
-        await faceapi.loadFaceDetectionModel(MODELS)
+        // await faceapi.loadFaceDetectionModel(MODELS)
         await faceapi.loadFaceRecognitionModel(MODELS)
 
-        console.log(this.videoEl);
+        console.log(this.videoEl, this.mediaStream);
         window.onmessage = (message) => { console.log(message); this.videoEl.pause() }
 
         navigator.mediaDevices.getUserMedia({
@@ -253,22 +243,26 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     }
 
     protected async _handle() {
-        switch (this.props.track) {
-            case Target.DETECT:
-                // this.videoEl.pause()
-                this.fullFaceDescriptors = await this.detectFaces(this.videoEl, true);
-                console.log(this.fullFaceDescriptors)
-                break;
-            case Target.RECOGNIZE:
-                this.videoEl.pause()
-                let { face, image } = await this.recognizeFaces(this.videoEl)
-                let result = new TrackerResult(true, { face, image })
-                this.props.recognize(result)
-                this.videoEl.play()
-                break;
-            case Target.VERIFY:
-                this.verify(this.fullFaceDescriptors)
-                break
+        try {
+            switch (this.props.track) {
+                case Target.DETECT:
+                    // this.videoEl.pause()
+                    this.fullFaceDescriptors = await this.detectFaces(this.videoEl, true) || []
+                    if (this.fullFaceDescriptors.length > 0) {
+                        this.props.callback(new TrackerResult(true, { faces: this.fullFaceDescriptors, message: "Detected faces!" }))
+                    }
+                    break;
+                case Target.RECOGNIZE:
+                    let faceData = await this.recognizeFaces(this.videoEl, true)
+                    if (faceData) {
+                        this.props.callback(new TrackerResult(true, { ...faceData, message: 'Face saved!' }))
+                    }
+                    this.videoEl.pause()
+                    break;
+            }
+        } catch (e) {
+            console.log(e)
+            this.run()
         }
     }
 
@@ -285,45 +279,54 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         this.ctx = this.canvasEl.getContext('2d');
     }
 
-    private async detectFaces(input: TrackerInputType, show?: boolean, useBatch?: boolean) {
+
+    /**
+     * This is used to save a new face for recognition. New user creation might trigger this function.
+     * There should be only one person visible during detection. This will take only the first face into consideration
+     * 
+     * @param input Source stream to recogize from 
+     */
+    private async detectFaces(input: TrackerInputType, oneShot: boolean = true, show: boolean = true, useBatch?: boolean) {
         console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
 
         let fullFaceDescriptors = await faceapi.mtcnn(input, { minFaceSize: 200, maxNumScales: 10 });//await faceapi.nets.mtcnn.forward(input, { minFaceSize: 200 })
-        if (show) {
-            fullFaceDescriptors.forEach(res => {
+        if (fullFaceDescriptors.length > 0) {
+            fullFaceDescriptors = fullFaceDescriptors.filter(res => {
                 if (res.faceDetection.score < MIN_CONFIDENCE) {
-                    return
+                    return false
                 }
-                // res = res.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight)
-                if (this.ctx) {
-                    this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
-                    if (res.faceDetection) {
-                        let rBox = res.faceDetection.getRelativeBox()
-                        let { clientWidth, clientHeight } = this.canvasEl
-                        let lMarks = res.faceLandmarks.getPositions()
-                        let verticalDisplacement = lMarks[4].y - lMarks[3].y
-                        // console.log(rBox, [(clientWidth * rBox.x).toPrecision(4), (clientHeight * rBox.y).toPrecision(4), (clientWidth * rBox.width).toPrecision(4), (clientHeight * rBox.height).toPrecision(4)])
-                        drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
-                            (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
-                            { strokeColor: this.boxColor.default, padding: 3 },
-                            verticalDisplacement > (4 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (lMarks[4].x - lMarks[3].x)) : 0)
-                        // faceapi.drawBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y), (clientWidth * (rBox.width)), (clientHeight * (rBox.height)), faceapi.getDefaultDrawOptions({ boxColor: this.boxColor.default }))
-                        // faceapi.drawDetection(this.canvasEl, res.faceDetection.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight), { withScore: false, boxColor: this.boxColor.default })
-                        this.videoEl.pause()
+                if (show) {
+
+                    if (this.ctx) {
+                        this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
+                        if (res.faceDetection) {
+                            let rBox = res.faceDetection.getRelativeBox()
+                            let { clientWidth, clientHeight } = this.canvasEl
+                            let lMarks = res.faceLandmarks.getPositions()
+                            let verticalDisplacement = lMarks[4].y - lMarks[3].y
+                            drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
+                                (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
+                                { strokeColor: this.boxColor.default, padding: 3 },
+                                Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (lMarks[4].x - lMarks[3].x)) : 0)
+                            if (oneShot) this.videoEl.pause()
+                        }
                     }
                 }
-                // console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, res.detection.imageHeight, res.detection.getBox());
-
-                // if (res.faceDetection) {
-                //     let rBox = res.faceDetection.getRelativeBox()
-                //     let { clientWidth, clientHeight } = this.canvasEl
-                //     faceapi.drawBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y), (clientWidth * rBox.width), (clientHeight * rBox.height), { ...faceapi.getDefaultDrawOptions(), withScore: false, boxColor: this.boxColor.default })
-                //     // faceapi.drawDetection(this.canvasEl, res.faceDetection.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight), { withScore: false, boxColor: this.boxColor.default })
-                //     this.videoEl.pause()
-                // }
-
                 console.log(res)
-            })
+                return true
+            }).sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
+
+            // console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, res.detection.imageHeight, res.detection.getBox());
+
+            // if (res.faceDetection) {
+            //     let rBox = res.faceDetection.getRelativeBox()
+            //     let { clientWidth, clientHeight } = this.canvasEl
+            //     faceapi.drawBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y), (clientWidth * rBox.width), (clientHeight * rBox.height), { ...faceapi.getDefaultDrawOptions(), withScore: false, boxColor: this.boxColor.default })
+            //     // faceapi.drawDetection(this.canvasEl, res.faceDetection.forSize(this.videoEl.clientWidth, this.videoEl.clientHeight), { withScore: false, boxColor: this.boxColor.default })
+            //     this.videoEl.pause()
+            // }
+
+            return fullFaceDescriptors;
         }
         // return fullFaceDescriptors
 
@@ -345,21 +348,42 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                     })
                 }
                 */
-        return fullFaceDescriptors;
-
+        return
     }
 
-    /**
-     * This is used to save a new face for recognition. New user creation might trigger this function.
-     * There should be only one person visible during detection. This will take only the first face into consideration
-     * 
-     * @param input Source stream to recogize from 
-     */
-    private async recognizeFaces(input: TrackerInputType) {
-        let image = getImageFromMedia(input)
-        let faces = await faceapi.allFaces(input, MIN_CONFIDENCE, this.useBatch);
+    private async recognizeFaces(input: TrackerInputType, oneShot: boolean = true, show: boolean = true) {
         //TODO:  Allow user select face incase of multiple faces
-        return { face: faces[0], image }
+        let fullFaceDescriptors = await faceapi.mtcnn(input, { minFaceSize: 200, maxNumScales: 10 });
+        if (fullFaceDescriptors.length > 0) {
+            fullFaceDescriptors = fullFaceDescriptors.filter(res => {
+                if (res.faceDetection.score < MIN_CONFIDENCE) {
+                    return false
+                }
+                if (show) {
+
+                    if (this.ctx) {
+                        this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
+                        if (res.faceDetection) {
+                            let rBox = res.faceDetection.getRelativeBox()
+                            let { clientWidth, clientHeight } = this.canvasEl
+                            let lMarks = res.faceLandmarks.getPositions()
+                            let verticalDisplacement = lMarks[4].y - lMarks[3].y
+                            drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
+                                (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
+                                { strokeColor: this.boxColor.default, padding: 3 },
+                                Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (lMarks[4].x - lMarks[3].x)) : 0)
+                            if (oneShot) this.videoEl.pause()
+                        }
+                    }
+                }
+                console.log(res)
+                return true
+            }).sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
+
+            let image = getImageFromMedia(input)
+            return { face: fullFaceDescriptors[0], image }
+        }
+        return null
     }
 
     public async verify(fdx: any[]) {
@@ -388,23 +412,23 @@ export default connect(null, (dispatch: Dispatch, ownprops: ITrackerProps) => {
         notify: (message: IMessage) => {
             let action = { type: NOTIFICATION, body: message };
             dispatch(action);
-        },
-        detection: (result: TrackerResult) => {
-            let action = { type: FACE_DETECT, body: result };
-            dispatch(action);
-        },
-        recognize: (person: TrackerResult) => {
-            let action = { type: FACE_DETECT_ADD, body: person }
-            dispatch(action)
         }
     }
 })(Tracker);
 
+interface IFaceData {
+    image?: any,
+    face?: MtcnnResult | FullFaceDescription | {},
+    message?: string | Message,
+    faces?: MtcnnResult[] | FullFaceDescription[] | {}[]
+
+}
+
 export class TrackerResult {
     public success: boolean;
-    public data: any[] | any;
+    public data: IFaceData[] | IFaceData | undefined;
 
-    constructor(success: boolean, data?: {}) {
+    constructor(success: boolean, data?: IFaceData | IFaceData[]) {
         this.success = success;
         this.data = data;
     }

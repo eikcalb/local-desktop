@@ -19,7 +19,6 @@ export const DB_VERSION = 1
 export const db = localforage.createInstance({
     description: "Storage for application data in NoSQL database. Is should provide a unified api for syncing application data between local and remote server (Firebase).",
     driver: [localforage.INDEXEDDB],
-    name: DB_NAME,
     version: DB_VERSION,
     storeName: 'localdesktop'
 })
