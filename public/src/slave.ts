@@ -20,11 +20,8 @@ if (isWorker) {
         const useWebSocket = (Number(process.env.serverMask) & WEBSOCKET_SERVER) === WEBSOCKET_SERVER
         let server: HttpServer | null = null
 
-        worker.send(`Hello From Worker second ${worker.id}!\r\nAwaiting init command...`)
+        worker.send(`Hello From Worker ${worker.id}!\r\nAwaiting init command...`)
         worker.on('error', worker.process.send)
-        //@ts-ignore
-        worker.send(global)
-        console.log(global)
 
         worker.on('message', (m: ClusterMessage) => {
             if (m.from === 'master') {
@@ -32,6 +29,7 @@ if (isWorker) {
                     // Initialize the cluster and start the server
                     case ClusterMessageType.INIT:
                         clusterConfig = m.message
+                        worker.send("Setting up " + worker.id + "!" + useHttp + " " + useWebSocket)
 
                         if (useHttp) {
                             server = createServer(setupExpress(clusterConfig.httpServer))

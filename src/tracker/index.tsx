@@ -203,7 +203,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 scroll='body' onClose={() => null} open={this.props.open}>
                 <DialogTitle>Center Your Face On The Camera!</DialogTitle>
                 <DialogContent>
-                    <div className="Tracker">
+                    <div className="TrackerMedia">
                         <video className={"FineVideo"} width={this.props.videoWidth || (MIN_VIDEO_WIDTH * 6)} height={this.props.videoHeight || (MIN_VIDEO_HEIGHT * 6)}
                             id='v' poster={logo} onPause={() => this.running = false}
                             onPlaying={() => this.running = true} onPlay={() => { this.run() }}
