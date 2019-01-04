@@ -1,9 +1,11 @@
+import { pbkdf2Sync, randomBytes } from 'crypto';
 import * as express from 'express';
-import { VerifyErrors } from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 // import { DOCUMENTS, getIDB } from "src/store";
 // import User from "src/types/User";
 // import { Vehicle } from "src/types/vehicle";
 import { ErrorResponse, IServerInterface, Response } from ".";
+import { db, QUERY } from './database';
 
 export const DOCUMENTS = {
     savedState: 'saved-state',
@@ -12,6 +14,7 @@ export const DOCUMENTS = {
     USERS: 'users',
     VEHICLES: 'vehicles'
 }
+const ITERATION_NUM = 64000 * 10 // The number of iterations should  at least double from `64000` every 2 years period from 2012
 
 export default class Server implements IServerInterface {
     private auth: Auth
@@ -70,13 +73,64 @@ export default class Server implements IServerInterface {
 
     public addUser(username: string, password: string, passwordVerify: string) {
         console.log('lagbajajajaja')
-
-        return this.auth.registerUser(username, password, passwordVerify).then(({ username, profile, token }: User) => {
+        return new Promise<User>(async (res, rej) => {
+            username = username.trim()
+            if (!password || password !== passwordVerify) {
+                // Do not proceed after this error!
+                return rej(new Error("Passwords do not match!"));
+            } else {
+                let user = username as User
+                user.isNewUser = user.isactive = user.isPrivate = true
+                // let store = tranx.objectStore(DOCUMENTS.USERS)
+                // 
+                // let nameIndex = store.index('username')
+                // let emailndex = store.index('email')
+                let key = await this.genUserKey(password);
+                if (!key) {
+                    return rej(new Error('Could not generate password!'))
+                }
+                user.password = key.key
+                user.salt = key.salt
+                user.id = randomBytes(this.auth.saltLength).toString('hex')
+                db({
+                    store: DOCUMENTS.USERS,
+                    query: QUERY.ADD,
+                    data: user
+                }).then(async (result) => {
+                    if (result) {
+                        try {
+                            console.log(result)
+                            // You might need to preserve the password for encryption
+                            //TODO:     Generate new predictible password for encryption
+                            delete user.password
+                            user.token = await this.createToken({
+                                iat: Date.now()
+                            }, { key: this.auth.key.key, passphrase: this.auth.key.pass }, {
+                                    header: { typ: 'jwt' },
+                                    audience: user.username,
+                                    expiresIn: '15m',
+                                })
+                            return res(user)
+                        } catch (err) {
+                            return rej(err)
+                        }
+                    } else {
+                        return rej(new Error('Could not add user!'))
+                    }
+                }).catch(err => rej(err))
+            }
+        }).then(({ username, profile, token }: User) => {
             return Promise.resolve(new Response<User>({ username, profile, token }))
         }).catch((err: any) => {
             console.error(err)
             return Promise.reject(new ErrorResponse(406, "Could not add user!"))
         })
+        // return this.auth.registerUser(username, password, passwordVerify).then(({ username, profile, token }: User) => {
+        //     return Promise.resolve(new Response<User>({ username, profile, token }))
+        // }).catch((err: any) => {
+        //     console.error(err)
+        //     return Promise.reject(new ErrorResponse(406, "Could not add user!"))
+        // })
     }
 
     public loginUser(username: string, token: string) {
@@ -98,7 +152,7 @@ export default class Server implements IServerInterface {
             if (!authHeader) {
                 return rej(new ErrorResponse(401, 'You are not authorized to view this resource!'))
             } else {
-                this.auth.verifyToken(authHeader.split(' ', 2)[0], this.auth.getPublicKey(), (err: VerifyErrors, payload: any) => {
+                this.verifyToken(authHeader.split(' ', 2)[0], this.auth.key.pubKey, (err: jwt.VerifyErrors, payload: any) => {
                     if (err) return rej(new ErrorResponse(403, err.message))
                     return res(payload)
                 })
@@ -108,5 +162,33 @@ export default class Server implements IServerInterface {
         }).catch(err => {
             res.status(err.errno || 401).json(err).end()
         })
+    }
+
+    private async genUserKey(key: string) {
+        let salt = randomBytes(this.auth.saltLength)
+        try {
+            let hash = await new Promise((res) => {
+                let newKey = pbkdf2Sync(key, salt, ITERATION_NUM, this.auth.keySize, this.auth.digest)
+                return res(newKey)
+            })
+            return Promise.resolve({ salt, key: hash.toString() })
+        } catch (e) {
+            return Promise.reject(false)
+        }
+
+
+    }
+
+    createToken(payload: {}, pkey: any, options?: jwt.SignOptions, callback?: jwt.SignCallback): Promise<string> {
+        return new Promise((res, rej) => {
+            jwt.sign(payload, pkey, { algorithm: 'RS512', ...options }, callback || function (err: any, encoded: string) {
+                if (err) rej(err)
+                return res(encoded)
+            })
+        })
+    }
+
+    verifyToken(token: string, pubkey: any, callback: jwt.VerifyCallback, opts?: jwt.VerifyOptions) {
+        return jwt.verify(token, pubkey, { algorithms: ['RS512'], ...opts }, callback)
     }
 }

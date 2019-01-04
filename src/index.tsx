@@ -66,7 +66,7 @@ const RawToolbar = ({ title, isWindowFullscreen, isWindowMaximized, showAppBar, 
     <header className={'Toolbar'} >
       <span style={{ display: 'inline-flex', justifyContent: 'space-between', alignItems: 'center', lineHeight: 1 }}>
         <span>{title}</span>
-        <Tooltip enterDelay={1200} TransitionComponent={Zoom} title={canToggleAppBar ? "Hide AppBar, double-click for fullscreen" : "Double-click for fullscreen"} placement={'bottom'} disableTouchListener >
+        <Tooltip enterDelay={1200} TransitionComponent={Zoom} title={canToggleAppBar ? "Hide AppBar, double-click to toggle fullscreen" : "Double-click to toggle fullscreen"} placement={'bottom'} disableTouchListener >
           <span className={'Control'} onClick={() => canToggleAppBar ? debouncedDispatch({ type: WINDOW_CONTROL_ACTION_SHOWAPPBAR, body: !showAppBar }) : null} onDoubleClick={() => debouncedDispatch({ type: WINDOW_CONTROL_ACTION_FULLSCREEN, body: !isWindowFullscreen })} style={{ WebkitMarginStart: '0.4em' }}>
             <FaExpand />
           </span>

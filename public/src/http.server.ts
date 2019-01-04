@@ -1,12 +1,12 @@
 import * as express from "express";
 import Server from "./server/server";
 
-export default function setupExpress(server: Server) {
+export default function setupExpress(auth: Auth) {
     let app: express.Express = express()
     app.use(express.urlencoded())
     app.use(express.json());
     // app.use(express.static('/'))
-
+    let server = new Server(auth)
 
     app.get('/', (req: any, res: any) => {
         res.status(200).send("<p>lagbaja<p>").end();

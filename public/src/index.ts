@@ -3,6 +3,7 @@ import { cpus } from 'os';
 import { join } from "path";
 import { createServer } from "http";
 import setupExpress from "./http.server";
+import { _handleDBRequest } from "./server/masterdatabase";
 //TODO:     Implement statics gathering algorithm for the servers
 // import ClusterInfo from "./clusterinfo";
 
@@ -41,7 +42,7 @@ function serverIsBalanced(expectedCount: number, currentCount: number = _cluster
  * @param percentageUsage Number indicating percentage of CPU usage
  * @param serverMask 0b01 for HTTP server, 0b10 for WebSocket server
  */
-export function startServerCluster(server: any, percentageUsage: number, serverMask: Server = HTTP_SERVER) {
+export function startServerCluster(server: IClusterConfig, percentageUsage: number, serverMask: Server = HTTP_SERVER) {
     _numberOfWorkers = Math.min(Math.ceil(((percentageUsage / 100) || DEFAULT_SLAVE_PROCESS_PERCENTAGE_CONSUMPTION_EXCLUSIVE) * NUMBER_OF_PROCESSESORS), NUMBER_OF_PROCESSESORS)
     setupMaster({ exec: join(__dirname, 'slave.js'), silent: false })
     if (!server || typeof server !== 'object') throw new ReferenceError('Server config must be an object instance!')
@@ -103,8 +104,6 @@ export function startServerCluster(server: any, percentageUsage: number, serverM
             })
         })
 
-        on('message', console.log)
-
         // Cluster should be resilient and exit must be controlled by application explicitly.
         // TODO:  Implement logic to allow changing cluster count
         on('exit', (w, c, sig) => {
@@ -132,9 +131,22 @@ export function startServerCluster(server: any, percentageUsage: number, serverM
             console.log(c, sig, _clusterCount)
         })
 
+        on('message', (worker, message) => {
+            console.log(message)
+            if (message instanceof ClusterMessage) {
+                switch (message.type) {
+                    case ClusterMessageType.WORKER_DATABASE_REQUEST:
+                        _handleDBRequest(server.db, worker, message)
+                        break
+                }
+                return
+            }
+        })
+
         for (let i = 0; i < _numberOfWorkers; i++) {
             fork({ serverMask })
         }
+
     }
 }
 
@@ -161,6 +173,8 @@ export class ClusterMessage {
     type: ClusterMessageType
     message: any
     public from: string
+    public _requestID: Buffer
+    public error: Error
 
     constructor(type: ClusterMessageType, message: any, from?: string) {
         this.message = message
@@ -170,5 +184,10 @@ export class ClusterMessage {
 }
 
 export enum ClusterMessageType {
-    INIT, WORKER_NOTIFICATION, WORKER_ERROR
+    INIT, WORKER_NOTIFICATION, WORKER_ERROR, WORKER_DATABASE_REQUEST
+}
+
+export interface IClusterConfig {
+    auth: any,
+    db: IDBDatabase
 }
