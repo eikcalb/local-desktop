@@ -19,12 +19,12 @@ To build, you need to install dependencies. This application is written in types
 
 Clone this repository and open terminal in the created folder. Run the following commands:
 
-> npm i 
+`npm i`
 *(To install dependencies)*
 
->launch --build
+`launch --build`
 *or*
->launch -b
+`launch -b`
 
 The application will be built and open up after build is complete.
 
