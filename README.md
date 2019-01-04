@@ -13,7 +13,29 @@ There are 3 types of users:
     These users have access to live feed from client applications. Superusers manage the lient applications.
 +  ***Clients*** These are end-users using the client application. They post live updates of their location to 'local-desktop'.
 
+### Building
+
+To build, you need to install dependencies. This application is written in typescript and requires a typescript compiler to build.  
+
+Clone this repository and open terminal in the created folder. Run the following commands:
+
+> npm i 
+*(To install dependencies)*
+
+>launch --build
+*or*
+>launch -b
+
+The application will be built and open up after build is complete.
+
+___
+## Contributing
+
+Send a pull request to contribute to development of local-desktop
+
 >>> More to come...
+
+
 
 ---
 <b style='font-size:0.9em'>&copy; Agwa Israel Onome 2019</b>  
