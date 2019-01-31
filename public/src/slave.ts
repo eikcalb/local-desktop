@@ -22,7 +22,7 @@ if (isWorker) {
         let server: HttpServer | null = null
 
         worker.send(`Hello From Worker ${worker.id}!\r\nAwaiting init command...`)
-        worker.on('error', worker.process.send)
+        worker.on('error', worker.send)
 
         worker.on('message', (m: ClusterMessage) => {
             if (m.from === 'master') {

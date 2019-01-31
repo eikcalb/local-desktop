@@ -1,12 +1,12 @@
 import { IAction } from "../actions";
 import ILocalStore from "../store";
 import * as TYPES from "../types";
-import logo from '../logo.svg'
 import Message from "../notification";
 
 const rootWindow = nw.Window.get()
 
 export default function reducer(state: ILocalStore, action: IAction): ILocalStore {
+    console.log('action dispatched', action)
     let newState = Object.assign({}, state)
     switch (action.type) {
         case TYPES.LOGIN:
@@ -15,6 +15,10 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
             newState.windowState.canToggleAppBar = true
             break
         case TYPES.REGISTER:
+            break
+        case TYPES.APPLICATION_TITLE_CHANGE:
+            newState.title = action.body
+            rootWindow.title = action.body
             break
         case TYPES.CLOSE_APPLICATION_WINDOW:
             newState.windowState.closed = action.body
@@ -40,23 +44,17 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
             break
         case TYPES.NOTIFICATION:
             let message: Message = action.body
-            if (document.hasFocus()) {
+            if (!message.useNative && document.hasFocus()) {
                 newState.newNotification = message
-            } else {
-                let notification;
-                if (message.title) {
-                    notification = new Notification(message.title, {
-                        requireInteraction: false,
-                        icon: logo,
-                        ...message.options,
-                        body: message.message
-                    })
-                } else {
-                    notification = new Notification(message.message, message.options)
-                }
-                notification.onshow = () => { message.seen = true }
             }
+            if (message.onshow) message.onshow()
             break
+        case TYPES.VEHICLES_UPDATE_LIST:
+            newState.vehicles = action.body
+            break;
+        case TYPES.USERS_UPDATE_LIST:
+            newState.users = action.body
+            break;
     }
     return newState
 }

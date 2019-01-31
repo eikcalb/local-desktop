@@ -6,7 +6,7 @@ declare module 'crypto' {
 }
 
 declare global {
-    interface Window { require: NodeRequire }
+    interface Window { require: NodeRequire, process:any }
 }
 
 declare module '*.json'

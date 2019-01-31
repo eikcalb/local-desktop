@@ -1,4 +1,5 @@
 import { FullFaceDescription } from "face-api.js";
+import { DOCUMENTS, getIDB } from "src/store";
 import { Location } from "./location";
 import { Vehicle } from "./vehicle";
 
@@ -66,4 +67,26 @@ export default class User {
 
 export class PreAuthUser extends User {
     passwordVerify?: string
+}
+
+
+export function getAllUsers(remove?: string): Promise<User[]> {
+    return new Promise((res, rej) => {
+        getIDB().then(db => {
+            let tranx = db.transaction(DOCUMENTS.USERS, 'readonly')
+            tranx.onerror = tranx.onabort = function (e) {
+                return rej(this.error)
+            }
+            tranx.objectStore(DOCUMENTS.USERS).getAll().addEventListener('success', function (e) {
+                if (this.result) {
+                    let user = this.result as User[]
+                    user = user.filter((value) => value.username !== remove)
+                    return res(user)
+                }
+                else {
+                    return rej(new Error('No User yet!'))
+                }
+            })
+        }).catch(err => rej(err))
+    })
 }

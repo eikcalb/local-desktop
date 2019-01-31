@@ -4,7 +4,11 @@ import Home from "./home";
 
 export const Links = {
     AUTHENTICATION: "/auth",
-    HOME: "/home"
+    HOME: "/home",
+    LIST_OF_USERS: "/users",
+    LIST_OF_VEHICLES: "/vehicles",
+    SETTINGS: "/settings",
+    ABOUT: "/about"
 }
 
 export default [

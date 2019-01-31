@@ -6,9 +6,8 @@ import { MdCancel, MdCheckCircle } from "react-icons/md";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
 import logo from '../logo.svg';
-import Message, { IMessage } from "../notification";
+import Message, { IMessage, notify } from "../notification";
 import { DOCUMENTS, getIDB } from "../store";
-import { NOTIFICATION } from "../types";
 import { drawCircleFromBox, getImageFromMedia, isDebug } from "./util";
 
 export enum Target {
@@ -73,7 +72,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     private rafId: number
     private updateRate: number = (1000 / IDEAL_FRAMERATE)
     public boxColor: { [key: string]: string } = {
-        success: '#5a58', default: '#fefefe88', fail: '#a558'
+        success: '#1f1a', default: '#eeea', fail: '#f11a'
     }
     private getVideoRef: (element: HTMLVideoElement) => void
 
@@ -140,6 +139,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     }
 
     componentWillUnmount() {
+        this.running = false
         cancelAnimationFrame(this.rafId);
         if (this.mediaStream) {
             if (this.mediaStream.stop) this.mediaStream.stop();
@@ -207,8 +207,8 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                         <video className={"FineVideo"} width={this.props.videoWidth || (MIN_VIDEO_WIDTH * 6)} height={this.props.videoHeight || (MIN_VIDEO_HEIGHT * 6)}
                             id='v' poster={logo} onPause={() => this.running = false}
                             onPlaying={() => this.running = true} onPlay={() => { this.run() }}
-                            src={process.env.PUBLIC_URL + '/video.example.ogg'}
-                            loop ref={this.getVideoRef}
+                            src={isDebug() ? process.env.PUBLIC_URL + '/video.example.ogg' : ''}
+                            loop ref={this.getVideoRef} autoPlay
                             style={{ objectFit: 'fill', zIndex: 1 }}>
                             <track kind={'descriptions'} srcLang={'en-US'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
                         </video>
@@ -241,7 +241,6 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
      */
     async _onload() {
         console.log(this.videoEl, this.mediaStream);
-        window.onmessage = (message) => { console.log(message); this.videoEl.pause() }
         if (!isDebug()) {
             navigator.mediaDevices.getUserMedia({
                 video: {
@@ -266,6 +265,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                         this.props.notify(new Message(e.message || 'Error while registering to capture media stream!'));
                     });
         } else {
+            // Delay processing because, somehow, the video element is not mounted in time for the ref callback to fire
             process.nextTick(() => setTimeout(this.registerTracker, 1500))
         }
 
@@ -304,7 +304,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                     // }
                     let result = await this.detectFaces(this.videoEl, true)
                     if (result) {
-                        this.result = new TrackerResult(true, result, 'Face detected successfully!')
+                        this.result = new TrackerResult(true, result, 'Face captured successfully!')
                         this.setState({ success: true })
                     }
                     break;
@@ -312,7 +312,8 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                     let faceData = await this.recognizeFaces(this.videoEl, await this.referenceFaces, true)
                     console.log(faceData)
                     if (faceData) {
-                        this.result = new TrackerResult(true, ...faceData, 'Face captured successfully!')
+                        //  Return only the first matched face
+                        this.result = new TrackerResult(true, faceData[0], 'Face recognised successfully!')
                         console.log("Recognition result: ", this.result)
                         this.setState({ success: true })
                         // setTimeout(
@@ -378,15 +379,15 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
      * 
      * @returns Promise<IFaceData[]|null> Containing the recognized face that matches the provided @see this.props.expectedUsername
      */
-    private async recognizeFaces(input: TrackerInputType, reference: LabeledFaceDescriptors[], oneShot: boolean = true, show: boolean = true): Promise<IFaceData[] | null> {
-        // console.log(this.videoEl.clientWidth, this.videoEl.clientHeight, this.canvasEl.clientWidth.toPrecision(4), this.canvasEl.clientHeight);
-
+    private async recognizeFaces(input: TrackerInputType, reference: LabeledFaceDescriptors[], oneShot: boolean = true, show: boolean = true, continueOnFail: boolean = true): Promise<IFaceData[] | null> {
         let fullFaceDescriptors = await faceapi.detectAllFaces(input, new TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: MIN_CONFIDENCE })).withFaceLandmarks(true).withFaceDescriptors();
         if (fullFaceDescriptors.length > 0) {
             let result = fullFaceDescriptors.reduce((prev, res) => {
                 // if (res.faceDetection.score < MIN_CONFIDENCE) {
                 //     return prev
                 // }
+                let verified = this.props.expectedUsername ? Tracker._verify(res, reference, this.props.expectedUsername) : null
+                if (verified) prev.push({ ...verified, face: res })
                 if (show) {
                     if (this.ctx) {
                         this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
@@ -398,14 +399,13 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                             let verticalDisplacement = leftPoint.y - rightPoint.y
                             drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
                                 (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
-                                { strokeColor: this.boxColor.success, padding: 3 },
+                                {
+                                    strokeColor: verified ? this.boxColor.success : this.boxColor.fail,
+                                    padding: 3
+                                },
                                 Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (leftPoint.x - rightPoint.x)) : 0)
                         }
                     }
-                }
-                let verified
-                if (this.props.expectedUsername && (verified = Tracker._verify(res, reference, this.props.expectedUsername))) {
-                    prev.push({ ...verified, face: res })
                 }
                 return prev
             }, new Array<IFaceData>())//.sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
@@ -413,8 +413,10 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 if (oneShot) this.videoEl.pause()
                 return result
             } else {
-                if (oneShot) return this.cancel("User's face does not match!"); else return null
+                if (!continueOnFail) return this.cancel("User's face does not match!"); else return null
             }
+        } else {
+            if (this.ctx) this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
         }
         return null
     }
@@ -434,7 +436,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
     //     })
     // }
 
-    protected static _verify(fd: FullFaceDescription, ref: LabeledFaceDescriptors[], expectedLabel: string): { label: string } {
+    protected static _verify(fd: FullFaceDescription, ref: LabeledFaceDescriptors[], expectedLabel: string): { label: string } | false {
         // console.log(matcher)
         // let faceMatch = matcher.findBestMatch(fd.descriptor)
         let match = ref.reduce((previous, { descriptors, label }): { distance: number, label: string }[] => {
@@ -457,7 +459,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             return previous
         }, new Array<{ distance: number, label: string }>()).sort((a, b) => a.distance - b.distance)[0]
 
-        return { label: match.label }
+        return match && match.label ? { label: match.label } : false
         // return {
         //     detection: fd.detection,
         //     label: bestMatch.label,
@@ -471,10 +473,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
 
 export default connect(null, (dispatch: Dispatch, ownprops: ITrackerProps) => {
     return {
-        notify: (message: IMessage) => {
-            let action = { type: NOTIFICATION, body: message };
-            dispatch(action);
-        }
+        notify: notify(dispatch)
     }
 })(Tracker);
 

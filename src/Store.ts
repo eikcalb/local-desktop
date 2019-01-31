@@ -3,6 +3,7 @@ import { ITrackerState } from "./tracker";
 import Auth from "./auth";
 import * as localforage from "localforage";
 import Message from "./notification";
+import { Vehicle } from "./types/vehicle";
 
 export const DOCUMENTS = {
     savedState: 'saved-state',
@@ -72,6 +73,7 @@ export function getIDB(force: boolean = false): Promise<IDBDatabase> {
 
 export default interface ILocalStore {
     auth: Auth,
+    title: string,
     windowState: {
         isWindowMaximized: boolean,
         isWindowFullscreen: boolean,
@@ -82,12 +84,15 @@ export default interface ILocalStore {
     databaseReady: boolean,
     user: User | null,
     tracker?: ITrackerState
-    newNotification?: Message
+    newNotification?: Message,
+    users?: User[],
+    vehicles?: Vehicle[]
 }
 
 export function defaultStore(): ILocalStore {
     return {
         user: null,
+        title: "LOCAL DESKTOP SERVER",
         windowState: {
             isWindowFullscreen: false,
             isWindowMaximized: false,

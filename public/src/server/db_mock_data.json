@@ -1,0 +1,253 @@
+{
+    "cars": [
+        {
+            "id": "1",
+            "brand": "Mercedes Benz",
+            "model": "G wagon",
+            "type": "SUV",
+            "profile": null
+        },
+        {
+            "id": "2",
+            "brand": "Mercedes Benz",
+            "model": "C320",
+            "type": "SEDAN",
+            "profile": null
+        },
+        {
+            "id": "3",
+            "brand": "Toyota",
+            "model": "Corolla",
+            "type": "SEDAN",
+            "profile": null
+        },
+        {
+            "id": "4",
+            "brand": "Honda",
+            "model": "Pilot",
+            "type": "SUV",
+            "profile": null
+        },
+        {
+            "id": "5",
+            "brand": "Kia",
+            "model": "Sportage",
+            "type": "SUV",
+            "profile": null
+        },
+        {
+            "id": "6",
+            "brand": "Mercedes Benz",
+            "model": "E360",
+            "type": "SEDAN",
+            "profile": null
+        },
+        {
+            "id": "7",
+            "brand": "Mercedes Benz",
+            "model": "A230",
+            "type": "HATCHBACK",
+            "profile": null
+        }
+    ],
+    "vehicles": [
+        {
+            "id": "1",
+            "vid": "1531966420",
+            "carid": "1",
+            "userid": "2",
+            "color": "Black",
+            "year": "2004",
+            "longitude": "55",
+            "latitude": "55555",
+            "profile": null
+        },
+        {
+            "id": "2",
+            "vid": "DEL-252XG",
+            "carid": "2",
+            "userid": "2",
+            "color": "Black",
+            "year": "2008",
+            "longitude": "3.3711",
+            "latitude": "6.5095",
+            "profile": null
+        },
+        {
+            "id": "3",
+            "vid": "KRD-167XJ",
+            "carid": "1",
+            "userid": "2",
+            "color": "Green",
+            "year": "2018",
+            "longitude": "3.406448",
+            "latitude": "6.465422",
+            "profile": null
+        },
+        {
+            "id": "4",
+            "vid": "KRD-127DG",
+            "carid": "4",
+            "userid": "8",
+            "color": "Black",
+            "year": "2004",
+            "longitude": "3.406448",
+            "latitude": "6.465423",
+            "profile": null
+        },
+        {
+            "id": "5",
+            "vid": "ASB-127OK",
+            "carid": "5",
+            "userid": "8",
+            "color": "Navy Blue",
+            "year": "2010",
+            "longitude": "3.3842",
+            "latitude": "6.5084",
+            "profile": null
+        },
+        {
+            "id": "6",
+            "vid": "ABK-123LG",
+            "carid": "7",
+            "userid": "8",
+            "color": "Blue",
+            "year": "2004",
+            "longitude": "3.384",
+            "latitude": "6.49",
+            "profile": null
+        },
+        {
+            "id": "7",
+            "vid": "LEK-191GG",
+            "carid": "3",
+            "userid": "8",
+            "color": "Black",
+            "year": "2012",
+            "longitude": "3.2253",
+            "latitude": "6.31304",
+            "profile": null
+        },
+        {
+            "id": "8",
+            "vid": "ABJ-222BD",
+            "carid": "6",
+            "userid": "8",
+            "color": "Black",
+            "year": "2012",
+            "longitude": "3.3721",
+            "latitude": "6.5095",
+            "profile": null
+        },
+        {
+            "id": "9",
+            "vid": "ABJ-210XD",
+            "carid": "6",
+            "userid": "2",
+            "color": "Blue",
+            "year": "2011",
+            "longitude": "3.3701",
+            "latitude": "6.5089",
+            "profile": null
+        },
+        {
+            "id": "10",
+            "vid": "ABK-199DF",
+            "carid": "3",
+            "userid": "2",
+            "color": "Black",
+            "year": "2012",
+            "longitude": "3.3721",
+            "latitude": "6.5095",
+            "profile": null
+        },
+        {
+            "id": "11",
+            "vid": "BEN-420EF",
+            "carid": "1",
+            "userid": "2",
+            "color": "Black",
+            "year": "2012",
+            "longitude": "3.406448",
+            "latitude": "6.46454",
+            "profile": null
+        },
+        {
+            "id": "12",
+            "vid": "ABJ-952BD",
+            "carid": "6",
+            "userid": "2",
+            "color": "Black",
+            "year": "2012",
+            "longitude": "3.3721",
+            "latitude": "6.5095",
+            "profile": null
+        }
+    ],
+    "location": [
+        {
+            "id": "1",
+            "vehicle": "1531966420",
+            "longitude": "55",
+            "latitude": "55555",
+            "timestamp": "1532000886"
+        },
+        {
+            "id": "2",
+            "vehicle": "1531966420",
+            "longitude": "55",
+            "latitude": "55555",
+            "timestamp": "1532001412"
+        },
+        {
+            "id": "6",
+            "vehicle": "KRD-127DG",
+            "longitude": "3.406448",
+            "latitude": "6.465422",
+            "timestamp": "1536594194"
+        },
+        {
+            "id": "9",
+            "vehicle": "KRD-127DG",
+            "longitude": "3.406448",
+            "latitude": "6.465422",
+            "timestamp": "1536595242"
+        },
+        {
+            "id": "10",
+            "vehicle": "KRD-127DG",
+            "longitude": "3.406448",
+            "latitude": "6.465421",
+            "timestamp": "1536595638"
+        },
+        {
+            "id": "11",
+            "vehicle": "KRD-127DG",
+            "longitude": "3.406448",
+            "latitude": "6.465422",
+            "timestamp": "1536595643"
+        },
+        {
+            "id": "12",
+            "vehicle": "KRD-127DG",
+            "longitude": "3.406448",
+            "latitude": "6.465423",
+            "timestamp": "1536595646"
+        },
+        {
+            "id": "13",
+            "vehicle": "KRD-127DG",
+            "longitude": "3.406448",
+            "latitude": "6.465423",
+            "timestamp": "1536673521"
+        },
+        {
+            "id": "14",
+            "vehicle": "KRD-127DG",
+            "longitude": "3.406448",
+            "latitude": "6.465423",
+            "timestamp": "1536673544"
+        }
+    ],
+    "new_vehicles": []
+}

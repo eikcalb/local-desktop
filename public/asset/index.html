@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="theme-color" content="#000000">
+    <link rel="shortcut icon" href="../../../favicon.ico">
+    <title>Local Desktop</title>
+
+    <style>
+        :root,
+        body {
+            height: 100%;
+            width: 100%;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            margin: 0;
+            transition: all cubic-bezier(0.23, 1, 0.320, 1) 1s;
+        }
+
+        #root {
+            flex: 1;
+            height: 100%;
+            width: 100%;
+            background-color: #227;
+            background: radial-gradient(#000, 10%, #fff, 11%, #049) 50vw 50vh;
+            color: #fafafa;
+            text-shadow: #111 0 1px 3px;
+            flex-direction: column;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Gill Sans', cursive, 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+            animation: root-background 35s ease-out infinite both;
+            background-clip: content-box;
+        }
+
+        @keyframes root-background {
+
+            10% {
+                background: radial-gradient(#000, 10%, #fff, 11%, #049a), red;
+            }
+
+            20% {
+                background: radial-gradient(#000, 12%, #fff, 13%, #0495), yellow
+            }
+
+            35% {
+                background: radial-gradient(#000, 11%, #fff, 12%, #0499), rgb(128, 0, 0)
+            }
+
+            50% {
+                background: radial-gradient(#000, 10%, #fff, 11%, #049);
+                background-position: 150vw 150vh
+            }
+
+            75% {
+                background: radial-gradient(#000, 10%, #fff, 12%, #049a), green
+            }
+
+            85% {
+                background: radial-gradient(#000, 10%, #fff, 11%, #049a), rgb(104, 89, 202)
+            }
+
+        }
+
+        #root:not(:first-child) {
+            padding: 1em;
+        }
+
+        a[rel='local'] {
+            color: #111;
+            text-decoration: none;
+            text-shadow: none;
+            font-weight: 600;
+            font-family: roboto, 'Arial Narrow Bold', sans-serif;
+            background: rgb(224, 243, 255);
+            box-shadow: #111 0 0.2em 0.4em 0.1em;
+            border-radius: 0.3em;
+            padding: 1em;
+        }
+
+        a[rel='local']:hover {
+            color: rgb(231, 231, 231);
+            background: rgb(0, 201, 0);
+            box-shadow: #111 0 0.09em 0.2em 0;
+        }
+
+        footer {
+            position: absolute;
+            bottom: 1em;
+            font-family: monospace
+        }
+    </style>
+
+    <script async>
+
+    </script>
+
+</head>
+
+<body>
+    <div id="root">
+        <h1>Welcome to Local Desktop</h1>
+        <p>This is a logistics platform for fleet management.</p>
+        <p>Click the button below to download the mobile tracking client application to start using Local.</p>
+        <a rel="local" href="/download/android" download="">Download apk</a>
+        <footer>&copy; Agwa Israel Onome 2019</footer>
+    </div>
+</body>
+
+</html>
