@@ -3,9 +3,11 @@ import 'leaflet/dist/leaflet.css';
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Vehicle } from "./types/vehicle";
+import { EventEmitter } from "events";
+import { SERVER_STAT_TYPES } from ".";
 
 
-export default class LocalMap extends React.PureComponent<{ style?: any, vehicles: Vehicle[], center?: LatLng }> {
+export default class LocalMap extends React.PureComponent<{ style?: any, emitter: EventEmitter, vehicles: Vehicle[], center?: LatLng }> {
     private map: Map
     private layerGroup: LayerGroup
     private markers: { [key: string]: Marker } = {}
@@ -13,6 +15,11 @@ export default class LocalMap extends React.PureComponent<{ style?: any, vehicle
     constructor(props: any) {
         super(props)
         this.layerGroup = layerGroup()
+        this.props.emitter.on(SERVER_STAT_TYPES.SERVER_UPDATE_VEHICLE, this.handleLocationChange)
+    }
+
+    handleLocationChange(...args: any[]) {
+
     }
 
     componentDidMount() {

@@ -4,6 +4,7 @@ import Auth from "./auth";
 import * as localforage from "localforage";
 import Message from "./notification";
 import { Vehicle } from "./types/vehicle";
+import { EventEmitter } from "events";
 
 export const DOCUMENTS = {
     savedState: 'saved-state',
@@ -86,7 +87,8 @@ export default interface ILocalStore {
     tracker?: ITrackerState
     newNotification?: Message,
     users?: User[],
-    vehicles?: Vehicle[]
+    vehicles?: Vehicle[],
+    eventEmitter: EventEmitter
 }
 
 export function defaultStore(): ILocalStore {
@@ -100,6 +102,7 @@ export function defaultStore(): ILocalStore {
             canToggleAppBar: false
         },
         auth: new Auth(),
-        databaseReady: false
+        databaseReady: false,
+        eventEmitter: new EventEmitter()
     }
 }

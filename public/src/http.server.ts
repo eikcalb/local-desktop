@@ -1,6 +1,9 @@
 import * as express from "express";
 import { normalize, resolve } from "path";
 import Server from "./server/server";
+import { worker } from "cluster";
+import { ClusterMessage } from ".";
+import { SERVER_STAT_TYPES } from "./server";
 
 export default function setupExpress(auth: Auth) {
     let app: express.Express = express()
@@ -37,6 +40,7 @@ export default function setupExpress(auth: Auth) {
             if (response.data.token) res.setHeader("X-Auth", response.data.token);
             delete response.data.token
             res.json(response)
+            worker.send(new ClusterMessage(SERVER_STAT_TYPES.SERVER_NEW_USER, req.body.username, 'worker'))
         } catch (err) {
             res.status(err.errno || 406).json(err)
         }
@@ -77,6 +81,7 @@ export default function setupExpress(auth: Auth) {
         try {
             let response = await server.addVehicle(req.params.user, req.body)
             res.json(response).end()
+            worker.send(new ClusterMessage(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, req.params.user, 'worker'))
         } catch (err) {
             res.status(err.errno || 406).json(err).end()
         }
@@ -86,6 +91,7 @@ export default function setupExpress(auth: Auth) {
         try {
             let response = await server.removeVehicle(req.params.vehicle)
             res.json(response).end()
+            worker.send(new ClusterMessage(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, req.params.vehicle, 'worker'))
         } catch (err) {
             res.status(err.errno || 406).json(err).end()
         }
@@ -108,6 +114,7 @@ export default function setupExpress(auth: Auth) {
         try {
             let response = await server.setVehicleLocation(req.params.vehicle, req.body)
             res.json(response)
+            worker.send(new ClusterMessage(SERVER_STAT_TYPES.SERVER_UPDATE_VEHICLE, req.params.vehicle, 'worker'))
         } catch (err) {
             res.status(err.errno || 406).json(err)
         }

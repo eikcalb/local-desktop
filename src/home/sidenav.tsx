@@ -1,22 +1,34 @@
-import { Avatar, Badge, Dialog, DialogContent, DialogTitle, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemIcon, ListItemSecondaryAction, ListItemText, ListSubheader, Switch, Tooltip, Typography, Zoom } from '@material-ui/core';
+import { Avatar, Badge, Collapse, Dialog, DialogContent, DialogTitle, Divider, IconButton, List, ListItem, ListItemAvatar, ListItemIcon, ListItemSecondaryAction, ListItemText, ListSubheader, Switch, Tooltip, Typography, Zoom } from '@material-ui/core';
 import * as React from 'react';
-import { FaCar, FaEmptySet, FaInfo, FaRetweet, FaUser } from 'react-icons/fa';
+import { FaCar, FaCaretDown, FaCaretUp, FaEmptySet, FaInfo, FaRetweet, FaUser } from 'react-icons/fa';
 import { connect } from 'react-redux';
 import { Dispatch } from 'redux';
 import ILocalStore, { getIDB } from 'src/store';
 import { USERS_UPDATE_LIST, VEHICLES_UPDATE_LIST } from 'src/types';
 import User, { getAllUsers } from 'src/types/User';
 import { getAllVehicles, Vehicle } from 'src/types/vehicle';
+import { SERVER_STAT_TYPES } from "../";
+import { EventEmitter } from 'events';
 const { networkInterfaces } = window.require('os');
 
 
 class RawSideNav extends React.PureComponent<any>{
+    updateFrequency = 400
+
     state = {
         startServer: false,
         networkAddresses: [],
         openAboutDialog: false,
         openUsersDialog: false,
-        openVehiclesDialog: false
+        openVehiclesDialog: false,
+        openCollapsedAddresses: false,
+        workerCount: 0
+    }
+
+    debounceTimers: { [key: string]: NodeJS.Timer | null } = {
+        vehicle: null,
+        user: null,
+        worker: null
     }
 
     constructor(props: any) {
@@ -24,20 +36,50 @@ class RawSideNav extends React.PureComponent<any>{
         this.props.refreshUsers()
         this.props.refreshVehicles()
         this.updateNetworkInterfaces()
+        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, this.handleVehicleUpdate)
+        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, this.handleVehicleUpdate)
+        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_NEW_USER, this.handleUserUpdate)
+        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_NEW_WORKER, this.handleWorkerUpdate)
+        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_KILL_WORKER, this.handleWorkerUpdate)
+    }
 
+    componentWillUnmount() {
+        let { eventEmitter } = this.props as { eventEmitter: EventEmitter }
+        eventEmitter.off(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, this.handleVehicleUpdate)
+        eventEmitter.off(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, this.handleVehicleUpdate)
+        eventEmitter.off(SERVER_STAT_TYPES.SERVER_NEW_USER, this.handleUserUpdate)
+        eventEmitter.off(SERVER_STAT_TYPES.SERVER_NEW_WORKER, this.handleWorkerUpdate.bind(this))
+        eventEmitter.off(SERVER_STAT_TYPES.SERVER_KILL_WORKER, this.handleWorkerUpdate.bind(this))
+    }
+
+    handleVehicleUpdate(...args: any[]) {
+        if (this.debounceTimers.vehicle) { clearTimeout(this.debounceTimers.vehicle); this.debounceTimers.vehicle = null; }
+        this.debounceTimers.vehicle = setTimeout(this.props.refreshVehicles.bind(this), this.updateFrequency, ...args)
+    }
+
+    handleUserUpdate(...args: any) {
+        if (this.debounceTimers.user) { clearTimeout(this.debounceTimers.user); this.debounceTimers.user = null }
+        this.debounceTimers.user = setTimeout(this.props.refreshUsers.bind(this), this.updateFrequency, ...args)
+    }
+
+    handleWorkerUpdate(...args: any) {
+        this.updateWorkerCount()
+    }
+
+    updateWorkerCount() {
+        this.setState({ workerCount: window.process.mainModule.exports.numberOfWorkers })
     }
 
     updateNetworkInterfaces() {
         let interfaces = networkInterfaces()
         let networkAddresses = []
-        console.log(interfaces)
         for (let interfaceName in interfaces) {
             let newAddresses = []
             //  Loops through all addresses in particular interface
             for (let networkInfo of interfaces[interfaceName]) {
                 // If this interface is internal, exit interface loop
                 if (networkInfo.internal) break
-                newAddresses.push(`${networkInfo.family}: ${networkInfo.address}`)
+                newAddresses.push({ family: networkInfo.family, address: networkInfo.address })
             }
 
             if (newAddresses.length > 0) {
@@ -47,7 +89,6 @@ class RawSideNav extends React.PureComponent<any>{
                 })
             }
         }
-        console.log(networkAddresses)
         this.setState({ networkAddresses })
     }
 
@@ -121,7 +162,7 @@ class RawSideNav extends React.PureComponent<any>{
                                 let newState = !this.state.startServer
                                 if (window.process.mainModule) {
                                     if (newState === true) {
-                                        window.process.mainModule.exports.startServerCluster({ db: await getIDB(), auth: this.props.auth }, 40)
+                                        window.process.mainModule.exports.startServerCluster({ db: await getIDB(), auth: this.props.auth, eventEmitter: this.props.eventEmitter }, 40)
                                     } else {
                                         window.process.mainModule.exports.stopCluster()
                                     }
@@ -130,14 +171,28 @@ class RawSideNav extends React.PureComponent<any>{
                             }} />
                         </ListItemSecondaryAction>
                     </ListItem>
-                    <ListItem dense>
-                        <ListItemText primary={`Cluster Count: ${window.process.mainModule.exports.numberOfWorkers || 0}`} secondary={'This is the number of workers spawn for the application server.'} />
+                    <ListItem button onClick={() => this.setState({ openCollapsedAddresses: !this.state.openCollapsedAddresses })} dense>
+                        <ListItemText primary={`Cluster Count: ${this.state.workerCount}`} secondary={'This is the number of workers spawn for the application server.'} />
+                        <ListItemIcon>
+                            {this.state.openCollapsedAddresses ? <FaCaretUp /> : <FaCaretDown />}
+                        </ListItemIcon>
                     </ListItem>
-                    {this.state.networkAddresses.map((network: { name: string, addresses: number[] }) => (
-                        <ListItem dense>
-                            <ListItemText primary={network.addresses.join(' ; ')} secondary={network.name} />
-                        </ListItem>
-                    ))}
+                    <Collapse in={this.state.openCollapsedAddresses}>
+                        <List>
+                            {this.state.networkAddresses.map((network: { name: string, addresses: any[] }) => (
+
+                                <React.Fragment>
+                                    <ListSubheader disableSticky={false}>{network.name}</ListSubheader>
+                                    {network.addresses.map(address => (
+                                        <ListItem dense>
+                                            <ListItemText style={{ alignSelf: 'flex-start' }} primary={address.address} secondary={address.family} />
+                                        </ListItem>
+                                    ))}
+
+                                </React.Fragment>
+                            ))}
+                        </List>
+                    </Collapse>
 
                 </List>
             </React.Fragment>
@@ -145,7 +200,11 @@ class RawSideNav extends React.PureComponent<any>{
     }
 }
 
-const SideNav = connect((state: ILocalStore, ownProps: any) => { }, (dispatch: Dispatch, ownProps: any) => {
+const SideNav = connect(({ eventEmitter }: ILocalStore, ownProps: any) => {
+    return {
+        eventEmitter
+    }
+}, (dispatch: Dispatch, ownProps: any) => {
     return {
         refreshUsers: () => {
             getAllUsers().then(val => { dispatch({ type: USERS_UPDATE_LIST, body: val }) }).catch(err => console.error(err))
@@ -167,7 +226,7 @@ export function UsersListDialog(props: any) {
             <DialogTitle>User List</DialogTitle>
             <DialogContent>
                 <List>
-                    {props.users ? (
+                    {props.users && props.users.length > 0 ? (
                         props.users.map((user: User) => {
                             return (
                                 <ListItem>
@@ -205,7 +264,7 @@ export function VehiclesListDialog(props: any) {
         <DialogTitle>Vehicle List</DialogTitle>
         <DialogContent>
             <List>
-                {props.vehicles ? (props.vehicles.map((vehicle: Vehicle) => {
+                {props.vehicles && props.vehicles.length > 0 ? (props.vehicles.map((vehicle: Vehicle) => {
                     return (
                         <ListItem>
                             <ListItemIcon>

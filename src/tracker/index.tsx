@@ -1,13 +1,15 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@material-ui/core";
+import { Slider } from '@material-ui/lab';
 import * as faceapi from "face-api.js";
 import { FullFaceDescription, LabeledFaceDescriptors, Point, TinyFaceDetectorOptions } from "face-api.js";
 import * as React from "react";
 import { MdCancel, MdCheckCircle } from "react-icons/md";
 import { connect } from "react-redux";
 import { Dispatch } from "redux";
-import logo from '../logo.svg';
+import { ImageCapture } from "src/mytypes";
 import Message, { IMessage, notify } from "../notification";
 import { DOCUMENTS, getIDB } from "../store";
+import { regulateBrightness } from "./image";
 import { drawCircleFromBox, getImageFromMedia, isDebug } from "./util";
 
 export enum Target {
@@ -47,6 +49,7 @@ export interface ITrackerProps {
 export class Tracker extends React.PureComponent<ITrackerProps, any>{
 
     private videoEl: HTMLVideoElement;
+    private imageCapture: ImageCapture
     private canvasEl: HTMLCanvasElement;
     private mediaStream: MediaStream;
     private videoTrack: MediaStreamTrack
@@ -67,14 +70,14 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             cancelAnimationFrame(this.rafId)
         }
     }
-    private ctx: CanvasRenderingContext2D | null;
+    // private ctx: CanvasRenderingContext2D | null;
     private timer: number
     private rafId: number
     private updateRate: number = (1000 / IDEAL_FRAMERATE)
     public boxColor: { [key: string]: string } = {
         success: '#1f1a', default: '#eeea', fail: '#f11a'
     }
-    private getVideoRef: (element: HTMLVideoElement) => void
+    private getCanvasRef: (element: HTMLCanvasElement) => void
 
     //TODO:  Make this to parse directory and get faces from that directory
     // TODO:  Save face descriptor alone without pictures.
@@ -121,14 +124,15 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         }
         // prepare models for future work
         Promise.all([
-            faceapi.loadMtcnnModel(MODELS),
+            // faceapi.loadMtcnnModel(MODELS),
             faceapi.loadTinyFaceDetectorModel(MODELS),
             faceapi.loadFaceLandmarkTinyModel(MODELS),
             faceapi.loadFaceRecognitionModel(MODELS)
         ])
-        this.getVideoRef = (el: any) => {
+        this.getCanvasRef = (el: any) => {
             if (el) {
-                this.videoEl = el
+                this.canvasEl = el
+                this.setState({ ctx: this.canvasEl.getContext('2d') })
             }
         }
     }
@@ -149,7 +153,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         delete this.canvasEl
         delete this.videoEl
         delete this.videoTrack
-        this.ctx = null
+        // this.ctx = null
     }
 
     canRunAlg(time: number, multiplier: number = 1): boolean {
@@ -169,14 +173,6 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         return null
     }
 
-    getSnapshotBeforeUpdate(prevProps: ITrackerProps, PrevState: unknown): any {
-        return this.props.play
-    }
-
-    componentDidUpdate(prevProps: any, PrevState: any, snapshot: boolean) {
-        this.running = snapshot
-    }
-
     // updateConstraints(constraints: MediaTrackConstraints) {
     //     this.videoTrack.applyConstraints(constraints)
     // }
@@ -189,7 +185,15 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         if (this.running && canRun) {
             // console.info('Running: ')
 
-            this._handle()
+            this.imageCapture.grabFrame().then(async image => {
+                if (this.state.ctx) {
+                    // this.state.ctx.clearRect(0, 0, this.canvasEl.clientWidth, this.canvasEl.clientHeight)
+                    this.state.ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, this.canvasEl.width, this.canvasEl.height)
+                    this.state.ctx.save()
+                    this._handle()
+                    this.state.ctx.restore()
+                }
+            }).catch(err => { console.log(err) })
         }
         if (this.running) { this.rafId = requestAnimationFrame(this.run.bind(this)) }
     }
@@ -202,17 +206,20 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 disableBackdropClick disableEscapeKeyDown
                 scroll='body' onClose={() => null} open={this.props.open}>
                 <DialogTitle>Center Your Face On The Camera!</DialogTitle>
-                <DialogContent>
+                <DialogContent style={{ overflowX: 'hidden' }} >
                     <div className="TrackerMedia">
-                        <video className={"FineVideo"} width={this.props.videoWidth || (MIN_VIDEO_WIDTH * 6)} height={this.props.videoHeight || (MIN_VIDEO_HEIGHT * 6)}
+                        <canvas className={"FineVideo"} width={this.props.videoWidth || (MIN_VIDEO_WIDTH * 6)} height={this.props.videoHeight || (MIN_VIDEO_HEIGHT * 6)}
+                            id='c'
+                            ref={this.getCanvasRef}
+                            style={{ objectFit: 'fill', zIndex: 1 }} />
+                        <BrightnessController initialLevel={100} ctx={this.state.ctx} />
+                        {/* <canvas className={"FineVideo"} width={this.props.videoWidth || (MIN_VIDEO_WIDTH * 6)} height={this.props.videoHeight || (MIN_VIDEO_HEIGHT * 6)}
                             id='v' poster={logo} onPause={() => this.running = false}
                             onPlaying={() => this.running = true} onPlay={() => { this.run() }}
                             src={isDebug() ? process.env.PUBLIC_URL + '/video.example.ogg' : ''}
-                            loop ref={this.getVideoRef} autoPlay
-                            style={{ objectFit: 'fill', zIndex: 1 }}>
-                            <track kind={'descriptions'} srcLang={'en-US'} default src={`${process.env.PUBLIC_URL}/vtt/detect.vtt`} />
-                        </video>
-                        <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'absolute', top: 0 }} />
+                            loop ref={this.getCanvasRef} autoPlay
+                            style={{ objectFit: 'fill', zIndex: 1 }} /> 
+                            <canvas id='c' ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'absolute', top: 0 }} /> */}
                         {/* <canvas height={416} width={768} ref={el => { if (el) { this.canvasEl = el } }} style={{ zIndex: 2, position: 'relative', bottom: '50%', left: 0 }} /> */}
                         {/* <button onClick={this._onload.bind(this)} style={{ zIndex: 4, flex: 1, alignSelf: 'center' }} >Start Tracker</button> */}
                     </div>
@@ -240,14 +247,13 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
      * Since this is a react c=application, prefer calling this in the component did mount event instead
      */
     async _onload() {
-        console.log(this.videoEl, this.mediaStream);
         if (!isDebug()) {
             navigator.mediaDevices.getUserMedia({
                 video: {
                     aspectRatio: 1,
                     frameRate: { ideal: IDEAL_FRAMERATE, max: 10, min: 2 },
-                    height: { ideal: this.videoEl ? this.videoEl.clientHeight : MIN_VIDEO_HEIGHT * 6, min: MIN_VIDEO_HEIGHT * 6 },
-                    width: { ideal: this.videoEl ? this.videoEl.clientWidth : MIN_VIDEO_WIDTH * 6, min: MIN_VIDEO_WIDTH * 6 }
+                    height: { ideal: this.canvasEl ? this.canvasEl.clientHeight : MIN_VIDEO_HEIGHT * 6, min: MIN_VIDEO_HEIGHT * 6 },
+                    width: { ideal: this.canvasEl ? this.canvasEl.clientWidth : MIN_VIDEO_WIDTH * 6, min: MIN_VIDEO_WIDTH * 6 }
                 }
             })
                 .then(
@@ -265,31 +271,27 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                         this.props.notify(new Message(e.message || 'Error while registering to capture media stream!'));
                     });
         } else {
-            // Delay processing because, somehow, the video element is not mounted in time for the ref callback to fire
+            // Delay processing, because apparently, the video element is not mounted in time for the ref callback to fire
             process.nextTick(() => setTimeout(this.registerTracker, 1500))
         }
 
     }
 
     async registerTracker(): Promise<any> {
-        console.log(this.videoEl);
         if (isDebug()) {
             if (!this.videoEl) {
                 return Promise.reject(new Error("No video element referenced!"));
             }
             this.canvasEl.width = this.videoEl.width
             this.canvasEl.height = this.videoEl.height
-            this.ctx = this.canvasEl.getContext('2d');
         } else {
-            if (!this.videoEl) {
+            if (!this.canvasEl) {
                 this.mediaStream.stop()
-                return Promise.reject(new Error("No video element referenced!"));
+                return Promise.reject(new Error("No canvas element referenced!"));
             }
-
-            this.videoEl.srcObject = this.mediaStream;
-            this.canvasEl.width = this.videoEl.width
-            this.canvasEl.height = this.videoEl.height
-            this.ctx = this.canvasEl.getContext('2d');
+            console.log('starting image capture!')
+            this.imageCapture = new window.ImageCapture(this.videoTrack)
+            this.running = true
         }
     }
 
@@ -302,14 +304,14 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                     // if (this.fullFaceDescriptors.length > 0) {
                     //     this.props.callback(new TrackerResult(true, { faces: this.fullFaceDescriptors, message: "Detected faces!" }))
                     // }
-                    let result = await this.detectFaces(this.videoEl, true)
+                    let result = await this.detectFaces(this.canvasEl, true)
                     if (result) {
                         this.result = new TrackerResult(true, result, 'Face captured successfully!')
                         this.setState({ success: true })
                     }
                     break;
                 case Target.RECOGNIZE:
-                    let faceData = await this.recognizeFaces(this.videoEl, await this.referenceFaces, true)
+                    let faceData = await this.recognizeFaces(this.canvasEl, await this.referenceFaces, true)
                     console.log(faceData)
                     if (faceData) {
                         //  Return only the first matched face
@@ -344,22 +346,24 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
         let res = await faceapi.detectSingleFace(input, new TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: MIN_CONFIDENCE })).withFaceLandmarks(true).withFaceDescriptor();
         if (res) {
             if (show) {
-                if (this.ctx) {
-                    this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
+                if (this.state.ctx) {
                     if (res.faceDetection) {
                         let rBox = res.faceDetection.relativeBox
                         let { clientWidth, clientHeight } = this.canvasEl
                         let lMarks = res.faceLandmarks.getMouth()
                         let leftPoint: Point = lMarks[0], rightPoint: Point = lMarks[lMarks.length - 1]
                         let verticalDisplacement = leftPoint.y - rightPoint.y
-                        drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
+                        drawCircleFromBox(this.state.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
                             (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
                             { strokeColor: this.boxColor.default, padding: 3 },
                             Math.abs(verticalDisplacement) > (2 * window.devicePixelRatio) ? Math.atan(verticalDisplacement / (leftPoint.x - rightPoint.x)) : 0)
                     }
                 }
             }
-            if (oneShot) this.videoEl.pause()
+            // if (oneShot) this.videoEl.pause()
+            if (oneShot) this.running = false
+            //  remove any drawing on the canvas
+            this.state.ctx.restore()
             let faceCanvases = await faceapi.extractFaces(input, [res.faceDetection])
             console.log(faceCanvases)
             let image = getImageFromMedia(faceCanvases[0])
@@ -389,15 +393,15 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 let verified = this.props.expectedUsername ? Tracker._verify(res, reference, this.props.expectedUsername) : null
                 if (verified) prev.push({ ...verified, face: res })
                 if (show) {
-                    if (this.ctx) {
-                        this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
+                    if (this.state.ctx) {
+                        // this.state.ctx.clearRect(0, 0, this.canvasEl.clientWidth, this.canvasEl.clientHeight)
                         if (res.faceDetection) {
                             let rBox = res.faceDetection.relativeBox
                             let { clientWidth, clientHeight } = this.canvasEl
                             let lMarks = res.faceLandmarks.getMouth()
                             let leftPoint: Point = lMarks[0], rightPoint: Point = lMarks[lMarks.length - 1]
                             let verticalDisplacement = leftPoint.y - rightPoint.y
-                            drawCircleFromBox(this.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
+                            drawCircleFromBox(this.state.ctx, (clientWidth * rBox.x), (clientHeight * rBox.y),
                                 (clientWidth * (rBox.width)), (clientHeight * (rBox.height)),
                                 {
                                     strokeColor: verified ? this.boxColor.success : this.boxColor.fail,
@@ -410,13 +414,14 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
                 return prev
             }, new Array<IFaceData>())//.sort(({ faceDetection: a }, { faceDetection: b }) => a.score > b.score ? 1 : a.score < b.score ? -1 : 0)
             if (result.length > 0) {
-                if (oneShot) this.videoEl.pause()
+                // if (oneShot) this.videoEl.pause()
+                if (oneShot) this.running = false
                 return result
             } else {
                 if (!continueOnFail) return this.cancel("User's face does not match!"); else return null
             }
         } else {
-            if (this.ctx) this.ctx.clearRect(0, 0, this.videoEl.clientWidth, this.videoEl.clientHeight)
+            // if (this.state.ctx) this.state.ctx.clearRect(0, 0, this.canvasEl.clientWidth, this.canvasEl.clientHeight)
         }
         return null
     }
@@ -510,4 +515,28 @@ export interface ITrackerState {
      */
     username: string
     faces: Float32Array[]
+}
+
+
+export class BrightnessController extends React.Component<{ initialLevel: number, ctx: CanvasRenderingContext2D | null }, any> {
+    constructor(props: any) {
+        super(props)
+        console.log(props)
+        this.state = {
+            brightnessLevel: props.initialLevel
+        }
+    }
+
+    setBrightnessLevel(event: React.ChangeEvent, brightnessLevel: number) {
+        this.setState({ brightnessLevel })
+        console.log('set brightness to: ' + brightnessLevel)
+        if (this.props.ctx) regulateBrightness(this.props.ctx, brightnessLevel)
+    }
+
+
+    render() {
+        return (
+            <Slider style={{ margin: '1em 0.5em' }} min={0} max={200} onChange={this.setBrightnessLevel.bind(this)} value={this.state.brightnessLevel} />
+        )
+    }
 }

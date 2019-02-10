@@ -298,7 +298,7 @@ export default class Server implements IServerInterface {
     public authorizeUserMiddleware(req: express.Request, res: express.Response, next: express.NextFunction) {
         return new Promise<void>((resolve, rej) => {
             try {
-                let authHeader: string = req.headers['X-Auth'] as string || (req.headers.authorization ? req.headers.authorization.split(' ', 2)[1] : '')
+                let authHeader: string = req.headers['x-auth'] as string || (req.headers.authorization ? req.headers.authorization.split(' ', 2)[1] : '')
                 if (!authHeader) {
                     return rej(new ErrorResponse(401, 'You are not authorized to use this resource!'))
                 } else {
