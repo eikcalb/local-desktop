@@ -23,6 +23,7 @@
     "min_height": 570,
     "width": 960,
     "height": 520,
-    "transparent": true
+    "transparent": true,
+    "show_in_taskbar": false
   }
 }

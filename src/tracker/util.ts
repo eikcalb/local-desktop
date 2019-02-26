@@ -41,8 +41,8 @@ export function drawCircleFromBox(ctx: CanvasRenderingContext2D, x: number, y: n
 }
 
 
-export function debounce(func:(...props:any)=>any, duration = 250, immediate = false) {
-    let timeout:any;
+export function debounce(func: (...props: any[]) => any, duration = 250, immediate = false) {
+    let timeout: any;
     return function () {
         //@ts-ignore
         let context = this, args = arguments;
@@ -56,4 +56,8 @@ export function debounce(func:(...props:any)=>any, duration = 250, immediate = f
         timeout = setTimeout(later, duration);
         if (callnow) func.apply(context, args);
     }
+}
+
+export function isDebug() {
+    return process.env['testing'] == '25'
 }

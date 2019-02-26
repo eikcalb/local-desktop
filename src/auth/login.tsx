@@ -61,8 +61,9 @@ export class Login extends React.Component<ILoginProps, any>{
                 {this.state.showTracker ? (
                     <Tracker classes={this.props.classes} canCancel open={this.state.showTracker} dialogContainer={this.props.dialogContainer}
                         track={Target.RECOGNIZE}
-                        expectedUsername={this.state.username}
-                        notify={m => null} callback={({ success, data, message }) => {
+                        expectedUsername={this.state.username.toLowerCase()}
+                        notify={m => null}
+                        callback={({ success, data, message }) => {
                             if (data && Array.isArray(data) && data.length > 0) {
                                 if (success && this.props.loginCallback) {
                                     this.props.loginCallback(this.user)

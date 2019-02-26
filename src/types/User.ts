@@ -17,6 +17,9 @@ export default class User {
     vehicles?: Vehicle[] = []
     profile?: string;
     token?: string;
+    /**
+     * Experimental feature, do not use!
+     */
     isNewUser: boolean = false;
     readonly isAdmin: boolean = false
     get profileSrc(): string {
@@ -59,4 +62,8 @@ export default class User {
     // }
 
 
+}
+
+export class PreAuthUser extends User {
+    passwordVerify?: string
 }

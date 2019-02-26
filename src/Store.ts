@@ -8,7 +8,8 @@ export const DOCUMENTS = {
     savedState: 'saved-state',
     SUPER_USERS: 'superusers',
     TRACKER: 'tracker',
-    USERS: 'users'
+    USERS: 'users',
+    VEHICLES: 'vehicles'
 }
 
 
@@ -37,7 +38,7 @@ export function getIDB(force: boolean = false): Promise<IDBDatabase> {
                 if (target) {
                     // Create User store and setup indices
                     let store: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.USERS, { keyPath: 'id' })
-                    store.createIndex('email', 'email', { unique: true })
+                    // store.createIndex('email', 'email', { unique: true })
                     store.createIndex('username', 'username', { unique: true })
 
                     let superStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.SUPER_USERS, { keyPath: 'id' })
@@ -47,6 +48,13 @@ export function getIDB(force: boolean = false): Promise<IDBDatabase> {
                     // Create Face data store and setup indices
                     let faceStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.TRACKER, { keyPath: 'id', autoIncrement: true })
                     faceStore.createIndex('uid', 'uid', { unique: true })
+
+                    // Create Vehicle store
+                    let vehicleStore: IDBObjectStore = (target as IDBOpenDBRequest).result.createObjectStore(DOCUMENTS.VEHICLES, { keyPath: 'id', autoIncrement: true })
+                    vehicleStore.createIndex('vid', 'vid', { unique: true })
+                    vehicleStore.createIndex('user', 'user', { unique: false, multiEntry: true })
+
+
                 }
             }
             request.onsuccess = function (e) {

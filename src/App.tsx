@@ -18,6 +18,7 @@ import ROUTES, { Links } from "./routes";
 import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
 import { NOTIFICATION } from './types';
+import Server from './server/server'
 // import startup from './startup';
 
 export interface IProps {
@@ -187,7 +188,7 @@ class App extends React.Component<IProps, unknown> {
   }
 
   componentDidMount() {
-
+    console.log(this)
   }
 
   parseNotification(notification: Message) {
@@ -240,7 +241,9 @@ class App extends React.Component<IProps, unknown> {
                 <div style={{
                   flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center'
                 }}>
-                  <Particles params={this.state.adminDialogOpen || props.history.location.pathname !== '/' ? this.state.particlesParamsStop : this.state.particlesParams}
+                  <Particles params={
+                    !this.state.adminDialogOpen && (props.history.location.pathname === '/index.html' || props.history.location.pathname === '/') ? this.state.particlesParams : this.state.particlesParamsStop
+                  }
                     style={{
                       position: 'absolute',
                       top: 0, left: 0,
@@ -357,6 +360,7 @@ class App extends React.Component<IProps, unknown> {
                                 try {
                                   await this.props.auth.grantApplicationAccess(this.state.adminPassword)
                                   this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
+                                  console.log(new Server(this.props.auth))
                                 } catch (err) {
                                   console.log(err)
                                   this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })

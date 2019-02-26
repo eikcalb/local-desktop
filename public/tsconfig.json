@@ -1,6 +1,5 @@
 {
     "compilerOptions": {
-        "baseUrl": ".",
         "module": "commonjs",
         "target": "ES2018",
         "lib": [
@@ -9,11 +8,10 @@
             "es2018"
         ],
         "sourceMap": true,
-        "allowJs": true,
-        "checkJs": true,
+        "allowJs": false,
         "jsx": "react",
         "moduleResolution": "node",
-        "rootDir": "src",
+        "rootDir": "./src",
         "outDir": "./lib",
         "forceConsistentCasingInFileNames": true,
         "noImplicitReturns": true,
@@ -23,16 +21,11 @@
         "suppressImplicitAnyIndexErrors": true,
         "noUnusedLocals": true
     },
-    "include": [
-        "./src/**/*"
-    ],
     "exclude": [
-        "node_modules",
-        "build",
-        "scripts",
-        "acceptance-tests",
-        "webpack",
-        "jest",
-        "src/setupTests.ts"
+        "**/*.tsx",
+        "**/*.js"
+    ],
+    "include":[
+        "./src/**/*.ts"
     ]
 }

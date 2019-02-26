@@ -9,6 +9,12 @@ set SHOULD_START=0
   set SHOULD_START=0
 )
 
+if "%1"=="-t" (
+set testing="25"
+) else if "%1"=="--test" (
+  set testing="25"
+)
+
 if "%1"=="--build" (
   goto :build
 ) else if "%1"=="-b" (
@@ -21,11 +27,17 @@ if not !ERRORLEVEL!==0 (
     goto :END
 )
 :build
+<<<<<<< HEAD
 call npm run build && tsc -p "./build"
+=======
+call yarn build 
+REM && tsc -p "./build"
+>>>>>>> affaaa9beaca6d7d8f0bd82f5e8365b439fa722e
 if not !ERRORLEVEL!==0 (
     echo An error occurred while building application
     goto :END
 )
+RD /S /Q "./build/src"
 if "%SHOULD_START%"=="1" (
   goto :start
 )
