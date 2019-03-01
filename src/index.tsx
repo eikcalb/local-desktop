@@ -24,7 +24,6 @@ rootWindow.on('maximize', () => { store.dispatch({ type: WINDOW_CONTROL_ACTION_M
 db.ready()
   .then(() => store.dispatch({ type: DATABASE_READY, ready: true }))
   .then(v => {
-    console.log(store.getState());
     initialize(document.getElementById('root') as HTMLElement)
     rootWindow.show();
     rootWindow.requestAttention(true);
@@ -34,7 +33,7 @@ db.ready()
 
 
 const RawToolbar = ({ title, isWindowFullscreen, isWindowMaximized, showAppBar, canToggleAppBar }: { title: string, canToggleAppBar: boolean, isWindowFullscreen: boolean, isWindowMaximized: boolean, showAppBar: boolean }) => {
-  console.log('Props for Toolbar: ', showAppBar, isWindowMaximized)
+  console.log('Props for Toolbar (showAppBar,isWindowMaximized): ', showAppBar, isWindowMaximized)
   let debouncedDispatch = function (func: any, duration = 100, immediate = false) {
     let timeout: any;
     return function (action: IAction) {
@@ -66,17 +65,17 @@ const RawToolbar = ({ title, isWindowFullscreen, isWindowMaximized, showAppBar, 
     <header className={'Toolbar'} >
       <span style={{ display: 'inline-flex', justifyContent: 'space-between', alignItems: 'center', lineHeight: 1 }}>
         <span>{title}</span>
-        <Tooltip enterDelay={1200} TransitionComponent={Zoom} title={canToggleAppBar ? "Hide AppBar, double-click for fullscreen" : "Double-click for fullscreen"} placement={'bottom'} disableTouchListener >
+        <Tooltip enterDelay={800} TransitionComponent={Zoom} title={canToggleAppBar ? (showAppBar ? "Hide" : "Show") + " AppBar, double-click to toggle fullscreen" : "Double-click to toggle fullscreen"} placement={'bottom'} disableTouchListener >
           <span className={'Control'} onClick={() => canToggleAppBar ? debouncedDispatch({ type: WINDOW_CONTROL_ACTION_SHOWAPPBAR, body: !showAppBar }) : null} onDoubleClick={() => debouncedDispatch({ type: WINDOW_CONTROL_ACTION_FULLSCREEN, body: !isWindowFullscreen })} style={{ WebkitMarginStart: '0.4em' }}>
             <FaExpand />
           </span>
         </Tooltip>
       </span>
       <div className='Controls'>
-        <Tooltip enterDelay={1200} TransitionComponent={Zoom} title="Minimize window" placement='bottom' disableTouchListener >
+        <Tooltip enterDelay={800} TransitionComponent={Zoom} title="Minimize window" placement='bottom' disableTouchListener >
           <FaMinusCircle className='Control' fill={'#ff00ff'} onClick={() => rootWindow.minimize()} />
         </Tooltip>
-        <Tooltip enterDelay={1200} TransitionComponent={Zoom} title={isWindowMaximized ? 'Restore window' : 'Maximize window'} placement='bottom' disableTouchListener >
+        <Tooltip enterDelay={800} TransitionComponent={Zoom} title={isWindowMaximized ? 'Restore window' : 'Maximize window'} placement='bottom' disableTouchListener >
           <FaCircle className='Control' fill={isWindowMaximized ? '#e7ff00' : '#0f0'} onClick={() => {
             if (isWindowMaximized) {
               rootWindow.restore()
@@ -85,16 +84,17 @@ const RawToolbar = ({ title, isWindowFullscreen, isWindowMaximized, showAppBar, 
             }
           }} />
         </Tooltip>
-        <Tooltip enterDelay={1200} TransitionComponent={Zoom} title='Close' placement='bottom' disableTouchListener >
+        <Tooltip enterDelay={800} TransitionComponent={Zoom} title='Close' placement='bottom' disableTouchListener >
           <FaTimesCircle className='Control' fill={'#f00'} onClick={() => store.dispatch({ type: CLOSE_APPLICATION_WINDOW, body: true })} />
         </Tooltip>
       </div>
-    </header>
+    </header >
   )
 }
 
-const Toolbar = connect(({ windowState }: ILocalStore, props: any) => {
+const Toolbar = connect(({ title, windowState }: ILocalStore, props: any) => {
   return {
+    title,
     ...windowState
   }
 })(RawToolbar)
@@ -113,7 +113,7 @@ ReactDOM.render(
   <Provider store={store} >
     <Router>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-        <Toolbar title={"LOCAL DESKTOP SERVER"} />
+        <Toolbar />
         <App />
         <div ></div>
       </div>

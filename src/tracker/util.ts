@@ -59,5 +59,5 @@ export function debounce(func: (...props: any[]) => any, duration = 250, immedia
 }
 
 export function isDebug() {
-    return process.env['testing'] == '25'
+    return false || process.env['testing'] == '25'
 }

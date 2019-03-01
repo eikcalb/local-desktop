@@ -5,10 +5,10 @@ import { connect } from "react-redux";
 import { Redirect } from "react-router";
 import { Dispatch } from "redux";
 import Auth from ".";
-import Message from "../notification";
+import { notify } from "../notification";
 import ILocalStore from "../store";
 import { Target, Tracker } from "../tracker";
-import { NOTIFICATION, REGISTER } from "../types";
+import { REGISTER } from "../types";
 import User from "../types/User";
 
 export interface IRegisterProps {
@@ -95,53 +95,55 @@ export class Register extends React.Component<IRegisterProps, any>{
                                 <Typography variant='caption' color='error' hidden={!this.state.error && !this.state.errorText} paragraph >
                                     {this.state.errorText}
                                 </Typography>
-                                <TextField value={this.state.username} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ username: value, error: !value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Username' type='text' name='username' />
-                                <TextField value={this.state.email} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ email: value, error: !value }) }} required fullWidth variant='outlined' margin='normal' label='Enter Email' type='email' name='email' />
-
-                                <TextField value={this.state.password} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => {
-                                    this.setState(
-                                        { password: value, error: !value })
-                                }} helperText={'Password should be at least 8 characters long!'} required fullWidth variant='outlined' margin='normal' label='Enter Password' type='password' name='password' />
-
-                                <TextField value={this.state.passwordVerify} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => {
-                                    this.setState(
-                                        { passwordVerify: value, error: !value })
-                                }} helperText={'Should be the same as password!'} required fullWidth variant='outlined' margin='normal' label='Verify Password' type='password' name='passwordVerify' />
-
-                                <Button fullWidth style={{ marginBottom: '1.2em' }} variant='raised' color='default'
-                                    onClick={() => this.setState({ showTracker: true })} >
-                                    {this.state.trackerDone ? (
-                                        "Face Captured!"
-                                    ) : "Start Facial Recognition!"}
-                                    {this.state.trackerDone ? (
-                                        <small>&emsp; (Click to try again)</small>
-                                    ) : null}
-                                </Button>
-
-                                <DialogActions>
-                                    <Button fullWidth disabled={this.state.error || this.state.loading || !this.state.trackerDone}
-                                        variant={'raised'} color='primary'
-                                        onClick={async () => {
-                                            let { password, passwordVerify, email, username, trackerData } = this.state
-                                            if (password !== '' && password.trim() !== '' && password.length >= 8 && password === passwordVerify && !this.state.loading && EMAIL_REGEX.test(email) && username && this.state.trackerDone && trackerData) {
-                                                this.setState({ loading: true })
-                                                let user: any
-                                                try {
-                                                    if (this.props.auth && (user = await this.props.auth.registerSuperUser(username, email, password, trackerData))) {
-                                                        if (this.props.registerCallback) {
-                                                            this.props.registerCallback(user)
-                                                        }
-                                                        this.setState({ loading: false, registrationSuccess: true })
-                                                        return
-                                                    }
-                                                } catch (e) {
-                                                    this.setState({ error: true, loading: false, errorText: e.message || e.target.error.message })
-                                                    console.log(e)
+                                <form id='user-register-form' onSubmit={async (event) => {
+                                    event.preventDefault()
+                                    let { password, passwordVerify, email, username, trackerData } = this.state
+                                    if (password !== '' && password.trim() !== '' && password.length >= 8 && password === passwordVerify && !this.state.loading && EMAIL_REGEX.test(email) && username && this.state.trackerDone && trackerData) {
+                                        this.setState({ loading: true })
+                                        let user: any
+                                        try {
+                                            if (this.props.auth && (user = await this.props.auth.registerSuperUser(username, email, password, trackerData))) {
+                                                if (this.props.registerCallback) {
+                                                    this.props.registerCallback(user)
                                                 }
+                                                this.setState({ loading: false, registrationSuccess: true })
                                                 return
                                             }
-                                            this.setState({ error: true, loading: false, errorText: 'Ensure that you have provided the required values!' })
-                                        }}>
+                                        } catch (e) {
+                                            this.setState({ error: true, loading: false, errorText: e.message || e.target.error.message })
+                                            console.log(e)
+                                        }
+                                        return
+                                    }
+                                    this.setState({ error: true, loading: false, errorText: 'Ensure that you have provided the required values!' })
+                                }}>
+                                    <TextField value={this.state.username} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ username: value, error: !value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Username' type='text' name='username' />
+                                    <TextField value={this.state.email} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ email: value, error: !value }) }} required fullWidth variant='outlined' margin='normal' label='Enter Email' type='email' name='email' />
+
+                                    <TextField value={this.state.password} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => {
+                                        this.setState(
+                                            { password: value, error: !value })
+                                    }} helperText={'Password should be at least 8 characters long!'} required fullWidth variant='outlined' margin='normal' label='Enter Password' type='password' name='password' />
+
+                                    <TextField value={this.state.passwordVerify} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => {
+                                        this.setState(
+                                            { passwordVerify: value, error: !value })
+                                    }} helperText={'Should be the same as password!'} required fullWidth variant='outlined' margin='normal' label='Verify Password' type='password' name='passwordVerify' />
+
+                                    <Button fullWidth style={{ marginBottom: '1.2em' }} variant='raised' color='default'
+                                        onClick={() => this.setState({ showTracker: true })} >
+                                        {this.state.trackerDone ? (
+                                            "Face Captured!"
+                                        ) : "Start Facial Recognition!"}
+                                        {this.state.trackerDone ? (
+                                            <small>&emsp; (Click to try again)</small>
+                                        ) : null}
+                                    </Button>
+                                </form>
+
+                                <DialogActions>
+                                    <Button type='submit' form='user-register-form' fullWidth disabled={this.state.error || this.state.loading || !this.state.trackerDone}
+                                        variant={'raised'} color='primary'>
                                         Register
                                 </Button>
                                 </DialogActions>
@@ -162,9 +164,7 @@ export default connect((state: ILocalStore, ownProps: any) => {
         registerCallback: (user: User) => {
             dispatch({ type: REGISTER, body: user })
         },
-        notify: (message: string, title?: string) => {
-            dispatch({ type: NOTIFICATION, body: new Message(message, title) })
-        }
+        notify: notify(dispatch)
     }
 })(Register)
 

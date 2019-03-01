@@ -209,3 +209,39 @@ a {
   transform-box: border-box;
   transform: rotateY(180deg);
 }
+
+/* 
+Homepage
+ */
+
+.Home {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+  align-items: center;
+}
+
+.LocalMap {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  width: 100%;
+}
+
+.leafletDivIcon {
+  background: #fbc02d;
+  border-radius: 3em;
+  display: flex !important;
+  font-size: 1.8em;
+  padding: 0.2em;
+  box-shadow: 0 0.1em 0.2em 0.05em #111;
+}
+
+.leafletDivIcon:hover {
+  background: #ffeb3b;
+  border-radius: 3em;
+  display: flex !important;
+  font-size: 1.8em;
+  padding: 0.2em;
+  box-shadow: 0 0.5em 0.35em -0.05em #222;
+}

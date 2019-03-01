@@ -1,5 +1,6 @@
-import { AppBar, Button, colors, createMuiTheme, createStyles, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, Drawer, Icon, IconButton, InputAdornment, LinearProgress, List, ListItem, ListItemText, MuiThemeProvider, Paper, Snackbar, TextField, Theme, Toolbar, Typography, withStyles, Zoom } from '@material-ui/core';
+import { AppBar, Button, colors, createMuiTheme, createStyles, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Drawer, Icon, IconButton, InputAdornment, LinearProgress, MuiThemeProvider, Paper, Snackbar, TextField, Theme, Toolbar, Typography, withStyles, Zoom } from '@material-ui/core';
 import classNames from "classnames";
+import { Location } from 'history';
 import * as React from 'react';
 import { FaMap } from 'react-icons/fa';
 import { MdCancel, MdLock, MdMenu, MdPersonAdd } from 'react-icons/md';
@@ -11,14 +12,15 @@ import './App.css';
 import Auth from './auth';
 import Login from './auth/login';
 import Register from './auth/register';
-import Message from './notification';
+import SideNav from './home/sidenav';
+import Message, { notify } from './notification';
 import particlesConfig from './particlesjs-config.json';
 import particlesConfigStop from './particlesjs-config.stop.json';
 import ROUTES, { Links } from "./routes";
 import start, { isFirstRun, rollBack } from './startup';
 import ILocalStore from './store';
-import { NOTIFICATION } from './types';
-import Server from './server/server'
+import User from './types/User';
+import { Vehicle } from './types/vehicle';
 // import startup from './startup';
 
 export interface IProps {
@@ -28,7 +30,10 @@ export interface IProps {
   showAppBar?: boolean,
   auth?: Auth,
   notify?: any,
-  newNotification?: Message
+  newNotification?: Message,
+  users: User[],
+  vehicles: Vehicle[],
+  location?: Location
 }
 
 const MAX_NUM_TRIALS = 2
@@ -100,13 +105,13 @@ const styles = createStyles((theme: Theme) => ({
   },
   content: {
     flexGrow: 1,
-    padding: theme.spacing.unit * 3,
+    // padding: theme.spacing.unit * 3,
     transition: theme.transitions.create(['width', 'margin'], {
       easing: theme.transitions.easing.easeIn,
       duration: theme.transitions.duration.leavingScreen
     }),
     marginLeft: -drawerWidth,
-    paddingBottom: theme.spacing.unit * 4.2
+    // paddingBottom: theme.spacing.unit * 4.2
   },
   contentShift: {
     transition: theme.transitions.create(['width', 'margin'], {
@@ -123,7 +128,8 @@ const styles = createStyles((theme: Theme) => ({
   dialogBody: {
     alignItems: 'center',
     display: 'flex',
-    justifyContent: 'center'
+    justifyContent: 'center',
+    flex: 1
   },
   snackbarRoot: {
     maxWidth: '50%',
@@ -181,14 +187,9 @@ class App extends React.Component<IProps, unknown> {
     if (new Date().getMonth() === 11) {
       this.state.particlesParams.particles.move.direction = "bottom"
     }
-
     // Run scripts needed to startup application
     // startup('lord')
     // console.log(window.require('fs'))
-  }
-
-  componentDidMount() {
-    console.log(this)
   }
 
   parseNotification(notification: Message) {
@@ -197,7 +198,7 @@ class App extends React.Component<IProps, unknown> {
       const notificationWithTitle = (<div><b>{notification.title}</b><p>{notification.message}</p></div>)
       const notificationWithoutTitle = (<div>{notification.message}</div>)
       notification.seen = true
-      return (<Snackbar autoHideDuration={5000} open={this.state.showNotification} onClose={() => { this.setState({ showNotification: false }); console.log(notification, this.props.newNotification) }}
+      return (<Snackbar autoHideDuration={3000} open={this.state.showNotification} onClose={() => { this.setState({ showNotification: false }); console.log(notification, this.props.newNotification) }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
         classes={{ root: this.props.classes.snackbarRoot, anchorOriginBottomRight: this.props.classes.snackbarRootBottomRight }}
         message={notification.title ? notificationWithTitle : notificationWithoutTitle} {...notification.options} />)
@@ -220,21 +221,13 @@ class App extends React.Component<IProps, unknown> {
             className={classNames(this.props.classes.drawer, { [this.props.classes.drawerShift]: this.state.drawerOpen })}
             classes={{ paper: this.props.classes.drawerPaper }}
             open={this.state.drawerOpen && this.props.showAppBar} anchor='left' variant='persistent' onClose={e => console.log(e, 'drawer closed')}>
-            <div className={this.props.classes.toolbar} />
-            <List>
-              <ListItem button>
-                <ListItemText primary={'lag'} />
-              </ListItem>
-            </List>
-            <Divider />
-            <List>
-              <ListItem button>
-                <ListItemText primary={'baja'} />
-              </ListItem>
-            </List>
+            {/* <div className={this.props.classes.toolbar} /> */}
+            <Toolbar variant='dense' />
+            <SideNav dialogContainer={this} classes={this.props.classes} auth={this.props.auth} usersCount={this.props.users ? this.props.users.length : 0} users={this.props.users} vehiclesCount={this.props.vehicles ? this.props.vehicles.length : 0} vehicles={this.props.vehicles} />
           </Drawer>
           <main className={classNames("App", this.props.classes.content, { [this.props.classes.contentShift]: this.state.drawerOpen && this.props.showAppBar })}>
-            <div hidden={!this.state.drawerOpen} className={this.props.classes.toolbar} />
+            {/* <div hidden={!this.state.drawerOpen} className={this.props.classes.toolbar} /> */}
+            <Toolbar className={classNames({ [this.props.classes.hide]: !this.props.showAppBar })} variant='dense' />
             <Switch>
               {...ROUTES}
               <Route render={(props) => (
@@ -265,15 +258,14 @@ class App extends React.Component<IProps, unknown> {
                         </Button>
                     </Paper>
                   </Zoom>
-                  {/* <Tracker play track={Target.DETECT} detection={() => { return false }} notify={() => { return false }} recognize={() => { return false }} /> */}
                   <Typography classes={{ root: this.props.classes.signatureRoot }} variant={'caption'} align='center' color='default' >
-                    &copy; Agwa Israel Onome, 2018
+                    &copy; Agwa Israel Onome, {new Date().getFullYear()}
                   </Typography>
                 </div>
               )
               } />
             </Switch>
-            <Route exact strict path={'/login'} render={(props) => <Login {...props} classes={this.props.classes} dialogContainer={this} />} />
+            <Route exact strict path={'/login'} render={(props) => <Login successCallback={() => this.setState({ drawerOpen: true })} loginCallback {...props} classes={this.props.classes} dialogContainer={this} />} />
             <Route exact strict path={'/register'} render={(props) => <Register {...props} classes={this.props.classes} dialogContainer={this} />} />
 
             {this.state.setupNewAdmin ? (
@@ -293,33 +285,36 @@ class App extends React.Component<IProps, unknown> {
                       <b>YOU CANNOT CHANGE THIS PASSWORD ONCE SET!</b>
                     </Typography>
                   </DialogContentText>
-                  <TextField inputProps={{ autoFocus: true, startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value || (value !== this.state.adminPasswordVerify && this.state.adminPasswordVerify) }) }} helperText={'Password should be at least 8 characters long and may be a phrase that can be easily remembered!'} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter New Admin Password' type='password' name='password' />
-                  <TextField inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPasswordVerify: value, adminPasswordError: !value || (this.state.adminPassword && this.state.adminPassword !== value) }) }} required fullWidth variant='outlined' margin='normal' label='Verify New Admin Password' type='password' name='vpassword' />
+                  <form id='admin-register-form' onSubmit={async (event) => {
+                    event.preventDefault()
+                    let pass = this.state.adminPassword, vPass = this.state.adminPasswordVerify
+                    if (pass === vPass && pass !== '' && vPass.trim() !== '' && pass.length >= 8 && !this.state.adminPasswordLoading) {
+                      this.setState({ adminPasswordLoading: true })
+                      let key: any
+                      if (this.props.auth && (key = await this.props.auth.genAdminKey(this.state.adminPassword))) {
+                        try {
+                          this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
+                          this.props.notify("Never forget your password. If that happens, you will lose all Your data", "Successfully Created Admin Credentials!")
+                          await start(key.key)
+                        }
+                        catch (e) {
+                          this.setState({ adminPasswordError: true, adminPasswordLoading: false })
+                          console.log(e)
+                          rollBack()
+                        }
+                        return
+                      }
+                    }
+                    this.setState({ adminPasswordError: true, adminPasswordLoading: false })
+                  }}>
+                    <TextField inputProps={{ autoFocus: true, startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value || (value !== this.state.adminPasswordVerify && this.state.adminPasswordVerify) }) }} helperText={'Password should be at least 8 characters long and may be a phrase that can be easily remembered!'} required fullWidth variant='outlined' margin='normal' label='Enter New Admin Password' type='password' name='password' />
+                    <TextField inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPasswordVerify: value, adminPasswordError: !value || (this.state.adminPassword && this.state.adminPassword !== value) }) }} required fullWidth variant='outlined' margin='normal' label='Verify New Admin Password' type='password' name='vpassword' />
+                  </form>
                 </DialogContent>
                 <DialogActions>
-                  <Button fullWidth disabled={this.state.adminPasswordError || this.state.adminPasswordLoading}
+                  <Button type='submit' form='admin-register-form' fullWidth disabled={this.state.adminPasswordError || this.state.adminPasswordLoading}
                     variant={'raised'} color='primary'
-                    onClick={async () => {
-                      let pass = this.state.adminPassword, vPass = this.state.adminPasswordVerify
-                      if (pass === vPass && pass !== '' && vPass.trim() !== '' && pass.length >= 8 && !this.state.adminPasswordLoading) {
-                        this.setState({ adminPasswordLoading: true })
-                        let key: any
-                        if (this.props.auth && (key = await this.props.auth.genAdminKey(this.state.adminPassword))) {
-                          try {
-                            this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
-                            this.props.notify("Never forget your password. If that happens, you will lose all Your data", "Successfully Created Admin Credentials!")
-                            await start(key.key)
-                          }
-                          catch (e) {
-                            this.setState({ adminPasswordError: true, adminPasswordLoading: false })
-                            console.log(e)
-                            rollBack()
-                          }
-                          return
-                        }
-                      }
-                      this.setState({ adminPasswordError: true, adminPasswordLoading: false })
-                    }}>
+                  >
                     Setup
                 </Button>
                 </DialogActions>
@@ -338,7 +333,30 @@ class App extends React.Component<IProps, unknown> {
                         <b>Password Error: {`${this.state.numTrials} ${this.state.numTrials > 1 ? 'tries' : 'try'} so far, maximum allowed is ${MAX_NUM_TRIALS}`}</b>
                       </Typography>
                     </DialogContentText>
-                    <TextField disabled={this.state.numTrials >= MAX_NUM_TRIALS} inputProps={{ startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value }) }} helperText={'Password should the same password you previously set!'} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Admin Password' type='password' name='password' />
+                    <form id='admin-login-form' onSubmit={async (event) => {
+                      event.preventDefault()
+                      let pass = this.state.adminPassword
+                      if (this.state.numTrials < MAX_NUM_TRIALS && (pass.trim() !== '' && pass.length >= 8) && !this.state.adminPasswordLoading) {
+                        this.setState({ adminPasswordLoading: true })
+                        if (this.props.auth) {
+                          try {
+                            await this.props.auth.grantApplicationAccess(this.state.adminPassword)
+                            this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
+                            // Uncomment below to enable test server on admin login
+                            // console.log(window.process.mainModule.exports.startServerCluster({ db: await getIDB(), auth: this.props.auth }, 10))
+                          } catch (err) {
+                            console.log(err)
+                            this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
+                          }
+                          return
+                        }
+
+                      }
+                      this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
+                    }
+                    } >
+                      <TextField disabled={this.state.numTrials >= MAX_NUM_TRIALS} inputProps={{ autoFocus: true, startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value }) }} helperText={'Password should the same password you previously set!'} required fullWidth variant='outlined' margin='normal' label='Enter Admin Password' type='password' name='password' />
+                    </form>
                   </DialogContent>
                   <DialogActions>
                     {this.state.numTrials >= MAX_NUM_TRIALS ? (
@@ -350,28 +368,9 @@ class App extends React.Component<IProps, unknown> {
                         <MdCancel fontSize={'1em'} />&emsp; Close Application
                       </Button>
                     ) : (
-                        <Button fullWidth disabled={this.state.adminPassword.length < 8}
+                        <Button type='submit' form='admin-login-form' fullWidth disabled={this.state.adminPassword.length < 8}
                           variant={'raised'} color='primary'
-                          onClick={async () => {
-                            let pass = this.state.adminPassword
-                            if (this.state.numTrials < MAX_NUM_TRIALS && (pass.trim() !== '' && pass.length >= 8) && !this.state.adminPasswordLoading) {
-                              this.setState({ adminPasswordLoading: true })
-                              if (this.props.auth) {
-                                try {
-                                  await this.props.auth.grantApplicationAccess(this.state.adminPassword)
-                                  this.setState({ adminDialogOpen: false, adminPasswordLoading: false })
-                                  console.log(new Server(this.props.auth))
-                                } catch (err) {
-                                  console.log(err)
-                                  this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
-                                }
-                                return
-                              }
-
-                            }
-                            this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
-                          }
-                          }>
+                        >
                           Enter
                       </Button>
                       )}
@@ -397,16 +396,16 @@ const mapStateToProps = (state: ILocalStore, ownProps: IProps) => {
     newUser: state.databaseReady,
     showAppBar: state.windowState.showAppBar,
     auth: state.auth,
-    newNotification: state.newNotification
+    newNotification: state.newNotification,
+    users: state.users,
+    vehicles: state.vehicles
   }
 
 };
 
 const mapDispatchToProps = (dispatch: Dispatch, ownProps: IProps) => {
   return {
-    notify: (message: string, title?: string) => {
-      dispatch({ type: NOTIFICATION, body: new Message(message, title) })
-    }
+    notify: notify(dispatch)
   }
 };
 

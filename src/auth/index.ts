@@ -147,7 +147,7 @@ export default class Auth {
                             delete user.password
                             user.isNewUser = false
                             user.token = await auth.generateUserToken(user)
-                            return res(user as SuperUser)
+                            return res(user as User)
                         } else {
                             return rej(new Error('Password or username incorrect!'))
                         }
