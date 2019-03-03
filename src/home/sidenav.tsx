@@ -39,8 +39,8 @@ class RawSideNav extends React.PureComponent<any>{
         this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, this.handleVehicleUpdate)
         this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, this.handleVehicleUpdate)
         this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_NEW_USER, this.handleUserUpdate)
-        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_NEW_WORKER, this.handleWorkerUpdate)
-        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_KILL_WORKER, this.handleWorkerUpdate)
+        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_NEW_WORKER, this.updateWorkerCount.bind(this))
+        this.props.eventEmitter.on(SERVER_STAT_TYPES.SERVER_KILL_WORKER, this.updateWorkerCount.bind(this))
     }
 
     componentWillUnmount() {
@@ -48,8 +48,8 @@ class RawSideNav extends React.PureComponent<any>{
         eventEmitter.off(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, this.handleVehicleUpdate)
         eventEmitter.off(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, this.handleVehicleUpdate)
         eventEmitter.off(SERVER_STAT_TYPES.SERVER_NEW_USER, this.handleUserUpdate)
-        eventEmitter.off(SERVER_STAT_TYPES.SERVER_NEW_WORKER, this.handleWorkerUpdate.bind(this))
-        eventEmitter.off(SERVER_STAT_TYPES.SERVER_KILL_WORKER, this.handleWorkerUpdate.bind(this))
+        eventEmitter.off(SERVER_STAT_TYPES.SERVER_NEW_WORKER, this.updateWorkerCount.bind(this))
+        eventEmitter.off(SERVER_STAT_TYPES.SERVER_KILL_WORKER, this.updateWorkerCount.bind(this))
     }
 
     handleVehicleUpdate(...args: any[]) {
@@ -60,10 +60,6 @@ class RawSideNav extends React.PureComponent<any>{
     handleUserUpdate(...args: any) {
         if (this.debounceTimers.user) { clearTimeout(this.debounceTimers.user); this.debounceTimers.user = null }
         this.debounceTimers.user = setTimeout(this.props.refreshUsers.bind(this), this.updateFrequency, ...args)
-    }
-
-    handleWorkerUpdate(...args: any) {
-        this.updateWorkerCount()
     }
 
     updateWorkerCount() {
@@ -184,8 +180,8 @@ class RawSideNav extends React.PureComponent<any>{
                                 <React.Fragment>
                                     <ListSubheader disableSticky={false}>{network.name}</ListSubheader>
                                     {network.addresses.map(address => (
-                                        <ListItem dense>
-                                            <ListItemText style={{ alignSelf: 'flex-start' }} primary={address.address} secondary={address.family} />
+                                        <ListItem style={{ alignContent: 'flex-start' }} dense>
+                                            <ListItemText primary={address.address} secondary={address.family} />
                                         </ListItem>
                                     ))}
 

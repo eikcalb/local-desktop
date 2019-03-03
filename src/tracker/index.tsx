@@ -186,6 +186,7 @@ export class Tracker extends React.PureComponent<ITrackerProps, any>{
             // console.info('Running: ')
 
             this.imageCapture.grabFrame().then(async image => {
+                if (!this.running || !canRun) return
                 if (this.state.ctx) {
                     // this.state.ctx.clearRect(0, 0, this.canvasEl.clientWidth, this.canvasEl.clientHeight)
                     this.state.ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, this.canvasEl.width, this.canvasEl.height)
