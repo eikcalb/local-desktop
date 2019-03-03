@@ -6,7 +6,7 @@ declare module 'crypto' {
 }
 
 declare global {
-    interface Window { require: NodeRequire, process:any }
+    interface Window { require: NodeRequire, process: any, ImageCapture: ImageCapture }
 }
-
+declare type ImageCapture = { new(track: MediaStreamTrack): ImageCapture, grabFrame: () => Promise<ImageBitmap> }
 declare module '*.json'

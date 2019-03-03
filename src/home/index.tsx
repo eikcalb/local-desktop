@@ -7,6 +7,7 @@ import { APPLICATION_TITLE_CHANGE } from 'src/types';
 import User from 'src/types/User';
 import LocalMap from 'src/map';
 import { Vehicle } from 'src/types/vehicle';
+import { EventEmitter } from 'events';
 
 interface IHomeProps {
     user?: User,
@@ -14,7 +15,8 @@ interface IHomeProps {
     setApplicationTitle?: (title: string) => unknown,
     notify: (message: string | IMessage, title?: string) => unknown
     classes: any,
-    vehicles?: Vehicle[]
+    vehicles?: Vehicle[],
+    emitter: EventEmitter
 }
 
 class Home extends React.PureComponent<IHomeProps> {
@@ -29,7 +31,7 @@ class Home extends React.PureComponent<IHomeProps> {
     render() {
         return (
             <div className='Home'>
-                <LocalMap vehicles={this.props.vehicles || []} style={{ flex: 1 }} />
+                <LocalMap emitter={this.props.emitter} vehicles={this.props.vehicles || []} style={{ flex: 1 }} />
             </div>
         )
     }
@@ -39,7 +41,8 @@ export default connect((state: ILocalStore, ownProps: any) => {
     return {
         user: state.user,
         applicationTitle: state.title,
-        vehicles: state.vehicles
+        vehicles: state.vehicles,
+        emitter: state.eventEmitter
     }
 }, (dispatch: Dispatch, ownProps: any) => {
     return {

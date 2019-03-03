@@ -22,7 +22,7 @@ export interface IRegisterProps {
     registerCallback?: (user: User) => any
 }
 
-const EMAIL_REGEX = new RegExp(/^\S+@\S+/)
+const EMAIL_REGEX = new RegExp(/^\S+@\S{3,}\.\S+$/)
 
 /**
  * Set the `from` property on the `location.state` the `Route` component object to redirect after registration or cancelled registration.

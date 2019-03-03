@@ -1,9 +1,11 @@
-import { disconnect, fork, isMaster, setupMaster, workers, on } from "cluster";
+import { disconnect, fork, isMaster, on, setupMaster, workers } from "cluster";
 import { createServer } from "http";
 import { cpus } from 'os';
 import { join } from "path";
 import setupExpress from "./http.server";
 import { _handleDBRequest } from "./server/masterdatabase";
+import { EventEmitter } from "events";
+import { SERVER_STAT_TYPES } from "./server";
 //TODO:     Implement statics gathering algorithm for the servers
 // import ClusterInfo from "./clusterinfo";
 
@@ -27,6 +29,7 @@ export const HTTP_SERVER = 0B001
 export const ALL_SERVERS = 0B011
 export type Server = typeof WEBSOCKET_SERVER | typeof HTTP_SERVER | typeof ALL_SERVERS
 
+
 function serverIsBalanced(expectedCount: number, currentCount: number = _clusterCount) {
     return currentCount >= (expectedCount - clusterLeeway) && currentCount <= (expectedCount + clusterLeeway)
 }
@@ -35,21 +38,21 @@ function serverIsBalanced(expectedCount: number, currentCount: number = _cluster
  * Starts cluster servers according to the `serverMask` provided.
  * The clusters are started first then the master starts the servers when appropriate.
  * 
- * @param server Object for server configuration
+ * @param config Object for server configuration
  * @param percentageUsage Number indicating percentage of CPU usage
  * @param serverMask 0b01 for HTTP server, 0b10 for WebSocket server
  */
-export function startServerCluster(server: IClusterConfig, percentageUsage: number, serverMask: Server = HTTP_SERVER) {
+export function startServerCluster(config: IClusterConfig, percentageUsage: number, serverMask: Server = HTTP_SERVER) {
     _numberOfWorkers = Math.min(Math.ceil(((percentageUsage / 100) || DEFAULT_SLAVE_PROCESS_PERCENTAGE_CONSUMPTION_EXCLUSIVE) * NUMBER_OF_PROCESSESORS), NUMBER_OF_PROCESSESORS)
     setupMaster({ exec: join(__dirname, 'slave.js'), silent: false })
 
     //  Function should not be called more than once. use `numberOfWorkers` to spawn new workers.
     if (_clusterStarted) {
+        if (module.exports.numberOfWorkers !== undefined) module.exports.numberOfWorkers = _numberOfWorkers
         console.warn("Cluster can only be started once!", "Set the number of workers directly to spawn more workers.")
-        if (module.exports.numberOfWorkers) module.exports.numberOfWorkers = _numberOfWorkers
         return
     }
-    if (!server || typeof server !== 'object') throw new ReferenceError('Server config must be an object instance!')
+    if (!config || typeof config !== 'object') throw new ReferenceError('Server config must be an object instance!')
     if (isMaster) {
         if (module.exports.numberOfWorkers === undefined) {
             Object.defineProperty(module.exports, 'numberOfWorkers', {
@@ -101,7 +104,8 @@ export function startServerCluster(server: IClusterConfig, percentageUsage: numb
         })
         on('online', (worker) => {
             // Set cluster instance with objects required for application to function
-            worker.send(new ClusterMessage(ClusterMessageType.INIT, server), null, (err) => {
+            worker.send(new ClusterMessage(ClusterMessageType.INIT, config), null, (err) => {
+                if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_NEW_WORKER)
                 if (err) {
                     console.log(err)
                     console.info(`Worker ${worker.id} could not be initialized!`, '... Kill it!!!!!!...')
@@ -130,6 +134,7 @@ export function startServerCluster(server: IClusterConfig, percentageUsage: numb
                 }
             } else if (_canDisconnect > 0) {
                 _canDisconnect = Math.max(_canDisconnect - 1, 0)
+                if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_KILL_WORKER)
             }
             // if (_clusterCount < 1) {
             //     _clusterStarted = false
@@ -141,7 +146,19 @@ export function startServerCluster(server: IClusterConfig, percentageUsage: numb
             if (message.type) {
                 switch (message.type) {
                     case ClusterMessageType.WORKER_DATABASE_REQUEST:
-                        _handleDBRequest(server.db, worker, message)
+                        _handleDBRequest(config.db, worker, message)
+                        break
+                    case SERVER_STAT_TYPES.SERVER_NEW_USER:
+                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_NEW_USER, message.message)
+                        break
+                    case SERVER_STAT_TYPES.SERVER_NEW_VEHICLE:
+                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, message.message)
+                        break
+                    case SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE:
+                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, message.message)
+                        break
+                    case SERVER_STAT_TYPES.SERVER_UPDATE_VEHICLE:
+                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_UPDATE_VEHICLE, message.message)
                         break
                 }
                 return
@@ -174,13 +191,13 @@ export function startTestServer(auth: any) {
 }
 
 export class ClusterMessage {
-    type: ClusterMessageType
+    type: ClusterMessageType | string
     message: any
     public from: string
     public _requestID: string
     public error: Error
 
-    constructor(type: ClusterMessageType, message: any, from?: string) {
+    constructor(type: ClusterMessageType | string, message: any, from?: string) {
         this.message = message
         this.type = type
         this.from = from ? from.toLowerCase() : 'master'
@@ -193,5 +210,6 @@ export enum ClusterMessageType {
 
 export interface IClusterConfig {
     auth: any,
-    db: IDBDatabase
+    db: IDBDatabase,
+    eventEmitter?: EventEmitter
 }

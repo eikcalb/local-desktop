@@ -173,6 +173,24 @@ a {
   }
 }
 
+@keyframes rotate {
+  100% {
+    transform-origin: center;
+    transform: rotate(360deg);
+  }
+  /* line 2167, /Users/mperez/Sites/smoothState/source/stylesheets/keyframes.css.scss */
+  0% {
+    transform-origin: center;
+    transform: rotate(0deg);
+  }
+}
+
+/* line 2178, /Users/mperez/Sites/smoothState/source/stylesheets/keyframes.css.scss */
+
+.rotate {
+  animation-name: rotate;
+}
+
 .Tracker {
   flex: 1;
   position: relative;

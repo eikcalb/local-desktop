@@ -1,3 +1,4 @@
+
 /**
  * This is an abstraction of the connection server.
  * Implementations will provide ways to manage data in an application specific manner.
@@ -41,4 +42,13 @@ export class ErrorResponse {
         this.errno = errno
         this.error = (Array.isArray(error) ? error : [error]) || ['Error Occurred!']
     }
+}
+
+export const SERVER_STAT_TYPES = {
+    SERVER_NEW_USER: 'SERVER_NEW_USER',
+    SERVER_NEW_VEHICLE: 'SERVER_NEW_VEHICLE',
+    SERVER_NEW_WORKER: 'SERVER_NEW_WORKER',
+    SERVER_KILL_WORKER: 'SERVER_KILL_WORKER',
+    SERVER_DELETE_VEHICLE: 'SERVER_DELETE_VEHICLE',
+    SERVER_UPDATE_VEHICLE: 'SERVER_UPDATE_VEHICLE'
 }
