@@ -14,7 +14,7 @@
   "window": {
     "id": "main-application-window",
     "icon": "favicon.ico",
-    "show": false,
+    "show": true,
     "shadow": true,
     "frame": false,
     "toolbar": false,
@@ -24,6 +24,6 @@
     "width": 960,
     "height": 520,
     "transparent": true,
-    "show_in_taskbar": false
+    "show_in_taskbar": true
   }
 }

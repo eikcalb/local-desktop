@@ -27,12 +27,8 @@ if not !ERRORLEVEL!==0 (
     goto :END
 )
 :build
-<<<<<<< HEAD
-call npm run build && tsc -p "./build"
-=======
 call yarn build 
 REM && tsc -p "./build"
->>>>>>> affaaa9beaca6d7d8f0bd82f5e8365b439fa722e
 if not !ERRORLEVEL!==0 (
     echo An error occurred while building application
     goto :END
