@@ -16,7 +16,7 @@ export const DOCUMENTS = {
 
 
 export const DB_NAME = "Local-Desktop-Database"
-export const DB_VERSION = 1
+export const DB_VERSION = 2
 
 //  TODO:   Create a localForage driver to persist changes to firebase database
 export const db = localforage.createInstance({

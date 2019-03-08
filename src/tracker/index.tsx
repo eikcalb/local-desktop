@@ -18,7 +18,7 @@ export enum Target {
 
 export type TrackerInputType = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement
 
-const MODELS = `${process.env.PUBLIC_URL}/weights`;
+const MODELS = `./weights`;
 const MIN_CONFIDENCE: number = 0.5;
 const MIN_EUCLIDEAN_DISTANCE: number = 0.49
 const MIN_VIDEO_HEIGHT: number = 52

@@ -26,5 +26,5 @@ export function getBrightnessLevel(image: ImageData): Promise<number> {
 
 export function regulateBrightness(ctx: CanvasRenderingContext2D, expectedBrightness: number) {
 
-    ctx.filter = `brightness(${expectedBrightness}%) contrast(${100 + Math.max(((100 - expectedBrightness) / 2), 100)})`
+    ctx.filter = `brightness(${expectedBrightness}%)`
 }

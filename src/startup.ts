@@ -2,7 +2,8 @@ import Auth, { ADMIN_SALT_1_PATH, ADMIN_SALT_2_PATH } from "./auth";
 let fs = window.require('fs')
 const path = window.require('path')
 
-export const appPath = path.join(nw.App.dataPath, '.app')
+const { remote } = window.require('electron')
+export const appPath = path.join(remote.app.getPath('userData'), '.app')
 
 export default function start(password: string) {
     log("Starting Machine...", Log.STARTUP)
@@ -17,7 +18,7 @@ export default function start(password: string) {
  * Checks if this is first run of application. Usually indicated by the '.app' directory in user home
  */
 export function isFirstRun(): boolean {
-    console.log(path.join(nw.App.dataPath, '.app'), fs.existsSync)
+    console.log(appPath, fs.existsSync(appPath))
     let exists: boolean = fs.existsSync(appPath)
     console.log(exists)
     return !exists
@@ -68,7 +69,7 @@ function setup(password: string): Promise<unknown> {
 
 export function initialize(root: HTMLElement): void {
     // addEventListener('DOMContentLoaded', e => {
-    let window = nw.Window.get()
+    const window = remote.getCurrentWindow()
     let size = 'Restore'
     window.on('maximize', () => {
         size = 'Maximize'
@@ -78,7 +79,7 @@ export function initialize(root: HTMLElement): void {
             size = 'Restore'
             root.className = size
         })
-        .on('enter-fullscreen', () => {
+        .on('enter-full-screen', () => {
             size = 'Fullscreen'
             root.className = size
         })

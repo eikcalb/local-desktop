@@ -1,29 +1,21 @@
 {
   "name": "local-desktop",
-  "version": "0.1.14",
+  "version": "0.2.0",
   "description": "client for local fleet application",
-  "main": "index.html",
+  "main": "lib",
   "user-agent": "%name/%ver/Eikcalb",
-  "node-main": "lib/index.js",
-  "single-instance": true,
-  "app-id": "io.agwa.eikcalb.local-desktop",
+  "build": {
+    "id": "dev.eikcalb.local-desktop",
+    "win": {
+      "icon": "favicon.ico",
+      "target": "nsis"
+    }
+  },
+  "scripts": {
+    "start": "electron ."
+  },
   "author": {
     "name": "Agwa Israel Onome",
     "email": "agwaisraelonome@gmail.com"
-  },
-  "window": {
-    "id": "main-application-window",
-    "icon": "favicon.ico",
-    "show": true,
-    "shadow": true,
-    "frame": false,
-    "toolbar": false,
-    "position": "center",
-    "min_width": 690,
-    "min_height": 570,
-    "width": 960,
-    "height": 520,
-    "transparent": true,
-    "show_in_taskbar": true
   }
 }

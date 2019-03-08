@@ -5,6 +5,8 @@ import { appPath } from "../startup";
 import { db, DOCUMENTS, getIDB } from "../store";
 import { IFaceData, ITrackerState } from "../tracker";
 import SuperUser from "../types/SuperUser";
+
+const { remote } = window.require('electron')
 const crypto = window.require('crypto')
 const fs = window.require('fs')
 const { join } = window.require('path')
@@ -13,8 +15,8 @@ const jwt = window.require('jsonwebtoken')
 
 const IV_SEPARATOR = '.'
 const ITERATION_NUM = 64000 * 10 // The number of iterations should  at least double from `64000` every 2 years period from 2012
-export const ADMIN_SALT_1_PATH = join(nw.App.dataPath, '.v1.admin.salt')
-export const ADMIN_SALT_2_PATH = join(nw.App.dataPath, '.v1.admin.salt2')
+export const ADMIN_SALT_1_PATH = join(remote.app.getPath('userData'), '.v1.admin.salt')
+export const ADMIN_SALT_2_PATH = join(remote.app.getPath('userData'), '.v1.admin.salt2')
 // const ROOT_PASSWORD='LAGBAJA'
 
 export default class Auth {

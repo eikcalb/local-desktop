@@ -16,7 +16,9 @@ import { IAction } from './actions';
 
 export const store = createStore<ILocalStore, Action, unknown, unknown>(reducer, defaultStore());
 
-const rootWindow = nw.Window.get()
+const { remote } = window.require('electron')
+
+const rootWindow = remote.getCurrentWindow()
 rootWindow.on('maximize', () => { store.dispatch({ type: WINDOW_CONTROL_ACTION_MAXIMIZED }) })
   .on('restore', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_RESTORE }))
   .on('enter-fullscreen', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_FULLSCREEN }))
@@ -25,10 +27,6 @@ db.ready()
   .then(() => store.dispatch({ type: DATABASE_READY, ready: true }))
   .then(v => {
     initialize(document.getElementById('root') as HTMLElement)
-    rootWindow.show();
-    rootWindow.requestAttention(true);
-    rootWindow.setShowInTaskbar(true)
-    rootWindow.showDevTools()
   })
 
 
@@ -53,9 +51,9 @@ const RawToolbar = ({ title, isWindowFullscreen, isWindowMaximized, showAppBar, 
   }((action: IAction) => {
     if (action.type === WINDOW_CONTROL_ACTION_FULLSCREEN) {
       if (action.body) {
-        rootWindow.enterFullscreen()
+        rootWindow.setFullScreen(true)
       } else {
-        rootWindow.leaveFullscreen()
+        rootWindow.setFullScreen(false)
       }
     }
     store.dispatch(action)

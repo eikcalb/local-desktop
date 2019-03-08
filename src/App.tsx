@@ -23,6 +23,7 @@ import User from './types/User';
 import { Vehicle } from './types/vehicle';
 // import startup from './startup';
 
+const { remote } = window.require("electron");
 export interface IProps {
   user?: any,
   classes?: any,
@@ -363,7 +364,7 @@ class App extends React.Component<IProps, unknown> {
                       <Button fullWidth
                         variant={'raised'} color='secondary'
                         onClick={() => {
-                          nw.App.quit()
+                          remote.app.quit()
                         }}>
                         <MdCancel fontSize={'1em'} />&emsp; Close Application
                       </Button>

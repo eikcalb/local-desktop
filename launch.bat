@@ -40,7 +40,8 @@ if "%SHOULD_START%"=="1" (
 goto :END
 
 :start
-start /B C:/nw.js/nw "./build"
+REM start /B C:/nw.js/nw "./build"
+call npm start
 goto :END
 
 :END

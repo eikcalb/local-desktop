@@ -3,7 +3,8 @@ import ILocalStore from "../store";
 import * as TYPES from "../types";
 import Message from "../notification";
 
-const rootWindow = nw.Window.get()
+const { remote } = window.require('electron')
+const rootWindow = remote.getCurrentWindow()
 
 export default function reducer(state: ILocalStore, action: IAction): ILocalStore {
     console.log('action dispatched', action)
@@ -18,11 +19,11 @@ export default function reducer(state: ILocalStore, action: IAction): ILocalStor
             break
         case TYPES.APPLICATION_TITLE_CHANGE:
             newState.title = action.body
-            rootWindow.title = action.body
+            rootWindow.setTitle(action.body)
             break
         case TYPES.CLOSE_APPLICATION_WINDOW:
             newState.windowState.closed = action.body
-            rootWindow.close(action.body)
+            rootWindow.close()
             break
         case TYPES.WINDOW_CONTROL_ACTION_FULLSCREEN:
             newState.windowState.isWindowFullscreen = action.body !== undefined ? action.body : true

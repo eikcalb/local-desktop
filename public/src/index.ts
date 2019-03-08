@@ -6,6 +6,7 @@ import setupExpress from "./http.server";
 import { _handleDBRequest } from "./server/masterdatabase";
 import { EventEmitter } from "events";
 import { SERVER_STAT_TYPES } from "./server";
+import { init } from "./electron";
 //TODO:     Implement statics gathering algorithm for the servers
 // import ClusterInfo from "./clusterinfo";
 
@@ -213,3 +214,10 @@ export interface IClusterConfig {
     db: IDBDatabase,
     eventEmitter?: EventEmitter
 }
+
+/**
+ * This is the starting point of the application.
+ * 
+ * Initialize the [Electron](https://electronjs.org) application
+ */
+init()
