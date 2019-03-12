@@ -1,7 +1,7 @@
 import Auth, { ADMIN_SALT_1_PATH, ADMIN_SALT_2_PATH } from "./auth";
+import { Stats } from "fs";
 let fs = window.require('fs')
 const path = window.require('path')
-
 const { remote } = window.require('electron')
 export const appPath = path.join(remote.app.getPath('userData'), '.app')
 
@@ -19,17 +19,22 @@ export default function start(password: string) {
  */
 export function isFirstRun(): boolean {
     console.log(appPath, fs.existsSync(appPath))
-    let exists: boolean = fs.existsSync(appPath)
-    console.log(exists)
-    return !exists
+    try {
+        fs.statSync(appPath)
+        return false // if the code execution continues then this is not first run, because app directory exists
+    } catch (e) {
+        console.error(e)
+        return true // if error is thrown, the pth does not exist
+    }
 }
 
 function setupAppDir(callback: (err?: any) => any): void {
-    fs.exists(appPath, (itExists: boolean) => {
-        if (itExists) callback()
-        else fs.mkdir(appPath, 0o777, callback)
+    fs.stat(appPath, (err: Error, stats: Stats) => {
+        if (stats && !err) callback()
+        else fs.mkdir(appPath, { mode: 0o777, recursive: true }, callback)
     })
 }
+
 function setup(password: string): Promise<unknown> {
     return new Promise((res, rej) => {
         setupAppDir((err: any) => {

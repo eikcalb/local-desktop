@@ -6,6 +6,7 @@ import { db, DOCUMENTS, getIDB } from "../store";
 import { IFaceData, ITrackerState } from "../tracker";
 import SuperUser from "../types/SuperUser";
 
+const { execFile } = window.require("child_process")
 const { remote } = window.require('electron')
 const crypto = window.require('crypto')
 const fs = window.require('fs')
@@ -332,11 +333,27 @@ export default class Auth {
         return jwt.verify(token, pubkey, { algorithms: ['RS512'], ...opts }, callback)
     }
 
-    public static async generateKeyPair(type: 'rsa' | 'dsa' | 'ec', options: {}): Promise<any> {
+    public static async generateKeyPair(type: 'rsa' | 'dsa' | 'ec', options: { modulusLength: number, publicKeyEncoding: { type: string, format: 'pem' | 'der' }, privateKeyEncoding: { type: string, format: 'pem' | 'der', passphrase: string, cipher: string } }): Promise<any> {
+        // 10/march/2019 - UPDATE
+        // Current implementation uses a custom keypair generator because electronjs does not yet support keypair generation
         console.log('geneate keypair arguments: ', arguments)
-        return util.promisify(crypto.generateKeyPair)(type, options).then((res: any) => {
+        // return util.promisify(crypto.generateKeyPair)(type, options).then((res: any) => {
+        //     console.log(`Promisified keypair generator result: `, res)
+        //     return Promise.resolve(res)
+        // }).catch((e: any) => { throw e })
+        return util.promisify((type: 'rsa', options: { modulusLength: number, publicKeyEncoding: { format: 'pem' | 'der' }, privateKeyEncoding: { format: 'pem' | 'der', passphrase: string, cipher: string } }, callback: (err: Error | null, res: any) => any) => {
+            execFile(`${process.env.KEYPAIRGEN_PATH}`, [options.modulusLength.toString(10), options.privateKeyEncoding.cipher, options.privateKeyEncoding.passphrase], (err: Error, output: string) => {
+                if (err || output.trim() === '') return callback(err || new Error('Could not create keypair!'), null)
+                return callback(null, output)
+            })
+        })(type, options).then((res: string) => {
+            let pubKeyStart = res.indexOf(`-----BEGIN ${type.toUpperCase()} PUBLIC KEY-----`)
+
             console.log(`Promisified keypair generator result: `, res)
-            return Promise.resolve(res)
+            return Promise.resolve({
+                publicKey: res.substring(0, pubKeyStart),
+                privateKey: res.substring(pubKeyStart)
+            })
         }).catch((e: any) => { throw e })
     }
 }
