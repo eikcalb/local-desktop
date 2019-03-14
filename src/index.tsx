@@ -21,7 +21,7 @@ const { remote } = window.require('electron')
 const rootWindow = remote.getCurrentWindow()
 rootWindow.on('maximize', () => { store.dispatch({ type: WINDOW_CONTROL_ACTION_MAXIMIZED }) })
   .on('restore', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_RESTORE }))
-  .on('enter-fullscreen', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_FULLSCREEN }))
+  .on('enter-full-screen', () => store.dispatch({ type: WINDOW_CONTROL_ACTION_FULLSCREEN }))
 
 db.ready()
   .then(() => store.dispatch({ type: DATABASE_READY, ready: true }))

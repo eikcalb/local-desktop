@@ -18,13 +18,13 @@ export default function start(password: string) {
  * Checks if this is first run of application. Usually indicated by the '.app' directory in user home
  */
 export function isFirstRun(): boolean {
-    console.log(appPath, fs.existsSync(appPath))
     try {
-        fs.statSync(appPath)
+        let stat = fs.statSync(appPath)
+        console.log(appPath, stat)
         return false // if the code execution continues then this is not first run, because app directory exists
     } catch (e) {
         console.error(e)
-        return true // if error is thrown, the pth does not exist
+        return true // if error is thrown, the path does not exist
     }
 }
 

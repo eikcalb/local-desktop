@@ -224,7 +224,9 @@ class App extends React.Component<IProps, unknown> {
             open={this.state.drawerOpen && this.props.showAppBar} anchor='left' variant='persistent' onClose={e => console.log(e, 'drawer closed')}>
             {/* <div className={this.props.classes.toolbar} /> */}
             <Toolbar variant='dense' />
-            <SideNav dialogContainer={this} classes={this.props.classes} auth={this.props.auth} usersCount={this.props.users ? this.props.users.length : 0} users={this.props.users} vehiclesCount={this.props.vehicles ? this.props.vehicles.length : 0} vehicles={this.props.vehicles} />
+            {this.props.user ? (
+              <SideNav dialogContainer={this} classes={this.props.classes} auth={this.props.auth} usersCount={this.props.users ? this.props.users.length : 0} users={this.props.users} vehiclesCount={this.props.vehicles ? this.props.vehicles.length : 0} vehicles={this.props.vehicles} />
+            ) : null}
           </Drawer>
           <main className={classNames("App", this.props.classes.content, { [this.props.classes.contentShift]: this.state.drawerOpen && this.props.showAppBar })}>
             {/* <div hidden={!this.state.drawerOpen} className={this.props.classes.toolbar} /> */}
@@ -299,6 +301,7 @@ class App extends React.Component<IProps, unknown> {
                           await start(key.key)
                         }
                         catch (e) {
+                          remote.shell.beep()
                           this.setState({ adminPasswordError: true, adminPasswordLoading: false })
                           console.log(e)
                           rollBack()
@@ -306,6 +309,7 @@ class App extends React.Component<IProps, unknown> {
                         return
                       }
                     }
+                    remote.shell.beep()
                     this.setState({ adminPasswordError: true, adminPasswordLoading: false })
                   }}>
                     <TextField inputProps={{ autoFocus: true, startAdornment: (<InputAdornment position='start'><MdLock /></InputAdornment>) }} error={this.state.adminPasswordError} onChange={({ target: { value } }) => { this.setState({ adminPassword: value, adminPasswordError: !value || (value !== this.state.adminPasswordVerify && this.state.adminPasswordVerify) }) }} helperText={'Password should be at least 8 characters long and may be a phrase that can be easily remembered!'} required fullWidth variant='outlined' margin='normal' label='Enter New Admin Password' type='password' name='password' />
@@ -347,12 +351,13 @@ class App extends React.Component<IProps, unknown> {
                             // console.log(window.process.mainModule.exports.startServerCluster({ db: await getIDB(), auth: this.props.auth }, 10))
                           } catch (err) {
                             console.log(err)
+                            remote.shell.beep()
                             this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
                           }
                           return
                         }
-
                       }
+                      remote.shell.beep()
                       this.setState({ adminPasswordError: true, adminPasswordLoading: false, numTrials: ++this.state.numTrials })
                     }
                     } >

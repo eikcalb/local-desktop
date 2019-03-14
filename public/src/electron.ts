@@ -1,5 +1,6 @@
 import { app, BrowserWindow, BrowserWindowConstructorOptions } from "electron";
 
+
 const WINDOW_DEFAULT_OPTIONS: BrowserWindowConstructorOptions = {
     center: true,
     skipTaskbar: true,
@@ -12,7 +13,13 @@ const WINDOW_DEFAULT_OPTIONS: BrowserWindowConstructorOptions = {
     }
 }
 
-let rootWindow: BrowserWindow | null;
+let _rootWindow: BrowserWindow | null;
+export declare var rootWindow: BrowserWindow
+Object.defineProperty(module.exports, 'rootWindow', {
+    get() {
+        return _rootWindow
+    }
+})
 
 export function init() {
     if (app.isReady()) return
@@ -25,7 +32,7 @@ export function init() {
     app.on('activate', () => {
         // On macOS it's common to re-create a window in the app when the
         // dock icon is clicked and there are no other windows open.
-        if (rootWindow === null) {
+        if (_rootWindow === null) {
             createWindow()
         }
     })
@@ -43,19 +50,20 @@ export function init() {
         }
     })
 
+
 }
 
 function createWindow() {
-    rootWindow = new BrowserWindow(WINDOW_DEFAULT_OPTIONS)
-    rootWindow.loadFile('./index.html')
-    rootWindow.show()
-    if (rootWindow) {
-        rootWindow.once('focus', () => { if (rootWindow) rootWindow.flashFrame(false) })
-        rootWindow.flashFrame(true)
-        rootWindow.setSkipTaskbar(false)
+    _rootWindow = new BrowserWindow(WINDOW_DEFAULT_OPTIONS)
+    _rootWindow.loadFile('./index.html')
+    _rootWindow.show()
+    if (_rootWindow) {
+        _rootWindow.once('focus', () => { if (_rootWindow) _rootWindow.flashFrame(false) })
+        _rootWindow.flashFrame(true)
+        _rootWindow.setSkipTaskbar(false)
         app.focus()
     }
-    rootWindow.on('closed', () => {
-        rootWindow = null
+    _rootWindow.on('closed', () => {
+        _rootWindow = null
     })
 }

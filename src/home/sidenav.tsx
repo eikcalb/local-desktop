@@ -10,6 +10,7 @@ import { getAllVehicles, Vehicle } from 'src/types/vehicle';
 import { SERVER_STAT_TYPES } from "../";
 import { EventEmitter } from 'events';
 const { networkInterfaces } = window.require('os');
+const { getGlobal } = window.require('electron').remote
 
 
 class RawSideNav extends React.PureComponent<any>{
@@ -63,7 +64,7 @@ class RawSideNav extends React.PureComponent<any>{
     }
 
     updateWorkerCount() {
-        this.setState({ workerCount: window.process.mainModule.exports.numberOfWorkers })
+        this.setState({ workerCount: getGlobal('server').numberOfWorkers })
     }
 
     updateNetworkInterfaces() {
@@ -156,12 +157,10 @@ class RawSideNav extends React.PureComponent<any>{
                         <ListItemSecondaryAction>
                             <Switch checked={this.state.startServer} onChange={async () => {
                                 let newState = !this.state.startServer
-                                if (window.process.mainModule) {
-                                    if (newState === true) {
-                                        window.process.mainModule.exports.startServerCluster({ db: await getIDB(), auth: this.props.auth, eventEmitter: this.props.eventEmitter }, 40)
-                                    } else {
-                                        window.process.mainModule.exports.stopCluster()
-                                    }
+                                if (newState === true) {
+                                    getGlobal('server').startServerCluster({ db: await getIDB(), auth: this.props.auth, eventEmitter: this.props.eventEmitter }, 40)
+                                } else {
+                                    getGlobal('server').stopCluster()
                                 }
                                 this.setState({ startServer: newState });
                             }} />

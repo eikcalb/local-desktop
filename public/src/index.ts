@@ -2,11 +2,10 @@ import { disconnect, fork, isMaster, on, setupMaster, workers } from "cluster";
 import { createServer } from "http";
 import { cpus } from 'os';
 import { join } from "path";
+import { init, rootWindow } from "./electron";
 import setupExpress from "./http.server";
-import { _handleDBRequest } from "./server/masterdatabase";
-import { EventEmitter } from "events";
 import { SERVER_STAT_TYPES } from "./server";
-import { init } from "./electron";
+import { _handleDBRequest } from "./server/masterdatabase";
 //TODO:     Implement statics gathering algorithm for the servers
 // import ClusterInfo from "./clusterinfo";
 
@@ -106,7 +105,7 @@ export function startServerCluster(config: IClusterConfig, percentageUsage: numb
         on('online', (worker) => {
             // Set cluster instance with objects required for application to function
             worker.send(new ClusterMessage(ClusterMessageType.INIT, config), null, (err) => {
-                if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_NEW_WORKER)
+                rootWindow.webContents.send(SERVER_STAT_TYPES.SERVER_NEW_WORKER)
                 if (err) {
                     console.log(err)
                     console.info(`Worker ${worker.id} could not be initialized!`, '... Kill it!!!!!!...')
@@ -135,7 +134,7 @@ export function startServerCluster(config: IClusterConfig, percentageUsage: numb
                 }
             } else if (_canDisconnect > 0) {
                 _canDisconnect = Math.max(_canDisconnect - 1, 0)
-                if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_KILL_WORKER)
+                rootWindow.webContents.send(SERVER_STAT_TYPES.SERVER_KILL_WORKER)
             }
             // if (_clusterCount < 1) {
             //     _clusterStarted = false
@@ -150,16 +149,16 @@ export function startServerCluster(config: IClusterConfig, percentageUsage: numb
                         _handleDBRequest(config.db, worker, message)
                         break
                     case SERVER_STAT_TYPES.SERVER_NEW_USER:
-                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_NEW_USER, message.message)
+                        rootWindow.webContents.send(SERVER_STAT_TYPES.SERVER_NEW_USER, message.message)
                         break
                     case SERVER_STAT_TYPES.SERVER_NEW_VEHICLE:
-                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, message.message)
+                        rootWindow.webContents.send(SERVER_STAT_TYPES.SERVER_NEW_VEHICLE, message.message)
                         break
                     case SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE:
-                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, message.message)
+                        rootWindow.webContents.send(SERVER_STAT_TYPES.SERVER_DELETE_VEHICLE, message.message)
                         break
                     case SERVER_STAT_TYPES.SERVER_UPDATE_VEHICLE:
-                        if (config.eventEmitter) config.eventEmitter.emit(SERVER_STAT_TYPES.SERVER_UPDATE_VEHICLE, message.message)
+                        rootWindow.webContents.send(SERVER_STAT_TYPES.SERVER_UPDATE_VEHICLE, message.message)
                         break
                 }
                 return
@@ -211,13 +210,31 @@ export enum ClusterMessageType {
 
 export interface IClusterConfig {
     auth: any,
-    db: IDBDatabase,
-    eventEmitter?: EventEmitter
+    db: IDBDatabase
 }
 
-/**
- * This is the starting point of the application.
- * 
- * Initialize the [Electron](https://electronjs.org) application
- */
-init()
+
+declare namespace global {
+    var server: {
+        startServerCluster(config: IClusterConfig, percentageUsage: number, serverMask?: Server): void,
+        stopCluster(): void,
+        numberOfWorkers: number
+    }
+}
+
+global.server = {
+    startServerCluster,
+    stopCluster,
+    get numberOfWorkers() {
+        return module.exports.numberOfWorkers || 0
+    }
+}
+
+if (isMaster) {
+    /**
+     * This is the starting point of the application.
+     * 
+     * Initialize the [Electron](https://electronjs.org) application
+     */
+    init()
+}

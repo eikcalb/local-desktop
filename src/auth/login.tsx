@@ -12,6 +12,7 @@ import ILocalStore from "../store";
 import { LOGIN } from "../types";
 import User from "../types/User";
 
+const { remote } = window.require('electron')
 export interface ILoginProps {
     auth: Auth,
     canCancel: boolean,
@@ -84,6 +85,7 @@ export class Login extends React.Component<ILoginProps, any>{
                                                 errorText: !success && data && message
                                             })
                                             if (this.props.successCallback) this.props.successCallback()
+                                            return
                                         } else {
                                             this.setState({
                                                 trackerDone: false,
@@ -109,6 +111,7 @@ export class Login extends React.Component<ILoginProps, any>{
                                     errorText: message || "Face not recognized"
                                 })
                             }
+                            remote.shell.beep()
                         }} />
                 ) : (
                         <Dialog className="Login"
@@ -152,11 +155,13 @@ export class Login extends React.Component<ILoginProps, any>{
                                                 return this.setState({ error: false, loading: false, showTracker: true })
                                             }
                                         } catch (e) {
+                                            remote.shell.beep()
                                             this.setState({ error: true, loading: false, errorText: e.message || e.target.error.message })
                                             console.log(e)
                                         }
                                         return
                                     }
+                                    remote.shell.beep()
                                     return this.setState({ error: true, loading: false, errorText: 'Ensure that you have provided the required values!' })
                                 }}>
                                     <Typography variant='caption' color='error' hidden={!this.state.error && !this.state.errorText} paragraph >

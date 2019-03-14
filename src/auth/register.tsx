@@ -11,6 +11,8 @@ import { Target, Tracker } from "../tracker";
 import { REGISTER } from "../types";
 import User from "../types/User";
 
+const { remote } = window.require('electron')
+
 export interface IRegisterProps {
     auth: Auth,
     canCancel: boolean,
@@ -113,8 +115,10 @@ export class Register extends React.Component<IRegisterProps, any>{
                                             this.setState({ error: true, loading: false, errorText: e.message || e.target.error.message })
                                             console.log(e)
                                         }
+                                        remote.shell.beep()
                                         return
                                     }
+                                    remote.shell.beep()
                                     this.setState({ error: true, loading: false, errorText: 'Ensure that you have provided the required values!' })
                                 }}>
                                     <TextField value={this.state.username} autoComplete={'off'} error={this.state.error} onChange={({ target: { value } }) => { this.setState({ username: value, error: !value }) }} required fullWidth variant='outlined' autoFocus margin='normal' label='Enter Username' type='text' name='username' />

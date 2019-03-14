@@ -1,13 +1,13 @@
+import { IpcRenderer } from 'electron';
 import * as React from 'react';
 import { connect } from 'react-redux';
 import { Dispatch } from 'redux';
-import { notify, IMessage } from 'src/notification';
+import LocalMap from 'src/map';
+import { IMessage, notify } from 'src/notification';
 import ILocalStore from 'src/store';
 import { APPLICATION_TITLE_CHANGE } from 'src/types';
 import User from 'src/types/User';
-import LocalMap from 'src/map';
 import { Vehicle } from 'src/types/vehicle';
-import { EventEmitter } from 'events';
 
 interface IHomeProps {
     user?: User,
@@ -16,7 +16,7 @@ interface IHomeProps {
     notify: (message: string | IMessage, title?: string) => unknown
     classes: any,
     vehicles?: Vehicle[],
-    emitter: EventEmitter
+    emitter: IpcRenderer
 }
 
 class Home extends React.PureComponent<IHomeProps> {

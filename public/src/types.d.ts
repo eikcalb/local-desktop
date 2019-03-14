@@ -1,4 +1,6 @@
-
+declare namespace NodeJS.Global{
+    var server:any 
+}
 declare type Vehicle = {
     model: string
     brand: string

@@ -1,13 +1,13 @@
+import { IpcRenderer } from "electron";
 import { divIcon, LatLng, LatLngExpression, LayerGroup, layerGroup, Map, map, marker, Marker, tileLayer } from "leaflet";
 import 'leaflet/dist/leaflet.css';
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Vehicle } from "./types/vehicle";
-import { EventEmitter } from "events";
 import { SERVER_STAT_TYPES } from ".";
+import { Vehicle } from "./types/vehicle";
 
 
-export default class LocalMap extends React.PureComponent<{ style?: any, emitter: EventEmitter, vehicles: Vehicle[], center?: LatLng }> {
+export default class LocalMap extends React.PureComponent<{ style?: any, emitter: IpcRenderer, vehicles: Vehicle[], center?: LatLng }> {
     private map: Map
     private layerGroup: LayerGroup
     private markers: { [key: string]: Marker } = {}

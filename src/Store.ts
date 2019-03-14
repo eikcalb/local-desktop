@@ -4,8 +4,9 @@ import Auth from "./auth";
 import * as localforage from "localforage";
 import Message from "./notification";
 import { Vehicle } from "./types/vehicle";
-import { EventEmitter } from "events";
+import { IpcRenderer } from "electron";
 
+const { ipcRenderer } = window.require('electron')
 export const DOCUMENTS = {
     savedState: 'saved-state',
     SUPER_USERS: 'superusers',
@@ -88,7 +89,7 @@ export default interface ILocalStore {
     newNotification?: Message,
     users?: User[],
     vehicles?: Vehicle[],
-    eventEmitter: EventEmitter
+    eventEmitter: IpcRenderer
 }
 
 export function defaultStore(): ILocalStore {
@@ -103,6 +104,6 @@ export function defaultStore(): ILocalStore {
         },
         auth: new Auth(),
         databaseReady: false,
-        eventEmitter: new EventEmitter()
+        eventEmitter: ipcRenderer
     }
 }

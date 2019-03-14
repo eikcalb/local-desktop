@@ -283,18 +283,22 @@ export default class Auth {
                     fs.readFile(ADMIN_SALT_2_PATH, async (err: any, salt2: any) => {
                         if (err) throw err
                         if (crypto.timingSafeEqual(Buffer.from(passwordHash), await this.genHash(pass, salt))) {
-                            let passphrase: string = (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString()
-                            this.adminKey = {
-                                key: fs.readFileSync(join(appPath, '.v1.privkey')),
-                                pass: passphrase,
-                                pubKey: fs.readFileSync(join(appPath, '.v1.pubkey'))
+                            try {
+                                let passphrase: string = (await this.genHash(pass, salt2, ITERATION_NUM / 10, this.keySize / 2)).toString()
+                                this.adminKey = {
+                                    key: fs.readFileSync(join(appPath, '.v1.privkey')),
+                                    pass: passphrase,
+                                    pubKey: fs.readFileSync(join(appPath, '.v1.pubkey'))
+                                }
+                                this.key = {
+                                    key: (this.adminKey.key as Buffer).toString(),
+                                    pass: passphrase,
+                                    pubKey: (this.adminKey.pubKey as Buffer).toString()
+                                }
+                                return res()
+                            } catch (err) {
+                                return rej(err)
                             }
-                            this.key = {
-                                key: (this.adminKey.key as Buffer).toString(),
-                                pass: passphrase,
-                                pubKey: (this.adminKey.pubKey as Buffer).toString()
-                            }
-                            return res()
                         } else {
                             return rej(new Error('Access denied!'))
                         }
@@ -342,18 +346,18 @@ export default class Auth {
         //     return Promise.resolve(res)
         // }).catch((e: any) => { throw e })
         return util.promisify((type: 'rsa', options: { modulusLength: number, publicKeyEncoding: { format: 'pem' | 'der' }, privateKeyEncoding: { format: 'pem' | 'der', passphrase: string, cipher: string } }, callback: (err: Error | null, res: any) => any) => {
-            execFile(`${process.env.KEYPAIRGEN_PATH}`, [options.modulusLength.toString(10), options.privateKeyEncoding.cipher, options.privateKeyEncoding.passphrase], (err: Error, output: string) => {
+            execFile(`${process.env.REACT_APP_KEYPAIRGEN_PATH}`, [options.modulusLength.toString(10), options.privateKeyEncoding.cipher, options.privateKeyEncoding.passphrase], (err: Error, output: string) => {
                 if (err || output.trim() === '') return callback(err || new Error('Could not create keypair!'), null)
                 return callback(null, output)
             })
         })(type, options).then((res: string) => {
             let pubKeyStart = res.indexOf(`-----BEGIN ${type.toUpperCase()} PUBLIC KEY-----`)
-
-            console.log(`Promisified keypair generator result: `, res)
-            return Promise.resolve({
-                publicKey: res.substring(0, pubKeyStart),
-                privateKey: res.substring(pubKeyStart)
-            })
+            let keyPair = {
+                privateKey: res.substring(0, pubKeyStart).trim(),
+                publicKey: res.substring(pubKeyStart).trim()
+            }
+            console.log(`Promisified keypair generator result: `, res, keyPair)
+            return Promise.resolve(keyPair)
         }).catch((e: any) => { throw e })
     }
 }

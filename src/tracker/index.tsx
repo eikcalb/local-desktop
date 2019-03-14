@@ -12,13 +12,15 @@ import { DOCUMENTS, getIDB } from "../store";
 import { regulateBrightness } from "./image";
 import { drawCircleFromBox, getImageFromMedia, isDebug } from "./util";
 
+const { resolve } = window.require('path')
+// const { remote } = window.require('electron')
 export enum Target {
     DETECT, RECOGNIZE
 }
 
 export type TrackerInputType = HTMLVideoElement | HTMLImageElement | HTMLCanvasElement
 
-const MODELS = `./weights`;
+const MODELS = resolve(`${process.env.PUBLIC_URL}/build/weights`)
 const MIN_CONFIDENCE: number = 0.5;
 const MIN_EUCLIDEAN_DISTANCE: number = 0.49
 const MIN_VIDEO_HEIGHT: number = 52
