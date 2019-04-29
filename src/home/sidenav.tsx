@@ -299,7 +299,7 @@ export function AboutDialog(props: any) {
                     <ListItemText primary={'OpenStreetMap Authors and Contributors'} secondary={'Map data'} />
                 </ListItem>
                 <ListItem>
-                    <ListItemText primary={'NWJS Authors and Contributors'} secondary={'nw.js hybrid desktop development platform'} />
+                    <ListItemText primary={'ElectronJS Authors and Contributors'} secondary={'ElectronJS hybrid desktop development platform'} />
                 </ListItem>
                 <ListItem>
                     <ListItemText primary={'Material-ui'} secondary={'User Interface'} />

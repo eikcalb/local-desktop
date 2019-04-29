@@ -5,7 +5,6 @@
 This is a desktop server application for fleet management.  
 **local-desktop** packages a mobile application which serves as clients for the server api.
 
-You must have [nwjs](https://nwjs.io) installed at `C:/nwjs` for windows.
 
 ### User Classes
 
