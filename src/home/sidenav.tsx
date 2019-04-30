@@ -167,7 +167,7 @@ class RawSideNav extends React.PureComponent<any>{
                         </ListItemSecondaryAction>
                     </ListItem>
                     <ListItem button onClick={() => this.setState({ openCollapsedAddresses: !this.state.openCollapsedAddresses })} dense>
-                        <ListItemText primary={`Cluster Count: ${this.state.workerCount}`} secondary={'This is the number of workers spawn for the application server.'} />
+                        <ListItemText primary={`Cluster Count: ${this.state.workerCount}`} secondary={'This is the number of workers spawned for the application server.'} />
                         <ListItemIcon>
                             {this.state.openCollapsedAddresses ? <FaCaretUp /> : <FaCaretDown />}
                         </ListItemIcon>

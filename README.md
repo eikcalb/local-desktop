@@ -5,6 +5,11 @@
 This is a desktop server application for fleet management.  
 **local-desktop** packages a mobile application which serves as clients for the server api.
 
+![](public/asset/disp/ld1.png)
+![](public/asset/disp/ld2.png)
+![](public/asset/disp/ld3.png)
+![](public/asset/disp/ld4.png)
+![](public/asset/disp/ld5.png)
 
 ### User Classes
 
